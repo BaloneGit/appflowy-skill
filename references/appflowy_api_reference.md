@@ -26,6 +26,7 @@
 - `POST /api/workspace/{workspace_id}/database/{database_id}/row`
 - `PUT /api/workspace/{workspace_id}/database/{database_id}/row`
 - `GET /api/workspace/{workspace_id}/database/{database_id}/row/detail?ids=...`
+- 字段改名/字段删除：当前无稳定 REST 路由，建议通过 skill 的 collab 命令完成
 - `DELETE /api/workspace/{workspace_id}/database/{database_id}/row`：**不支持（通常返回 405）**
 
 ### 搜索
@@ -103,6 +104,22 @@
 - 脚本：`python skills/appflowy-api/scripts/page_blocks.py ...`
 - 统一入口：`python skills/appflowy-api/scripts/appflowy_skill.py page-get-blocks ...`
 - 支持 `--raw`（原始 collab JSON）与 `--flat`（扁平 block 列表）。
+
+### `page-delete-blocks`
+- 脚本：`python skills/appflowy-api/scripts/delete_page_blocks.py ...`
+- 统一入口：`python skills/appflowy-api/scripts/appflowy_skill.py page-delete-blocks ...`
+- 支持 `--dry-run`、`--block-id/--block-ids/--block-ids-file`。
+
+### `rename-db-field`
+- 脚本：`python skills/appflowy-api/scripts/rename_db_field.py ...`
+- 统一入口：`python skills/appflowy-api/scripts/appflowy_skill.py rename-db-field ...`
+- 支持按 `--field-id` 或 `--field-name` 定位字段（同名字段会要求改用 id）。
+
+### `delete-db-field`
+- 脚本：`python skills/appflowy-api/scripts/delete_db_field.py ...`
+- 统一入口：`python skills/appflowy-api/scripts/appflowy_skill.py delete-db-field ...`
+- 默认 dry-run；实际删除必须传 `--execute --yes`。
+- 禁止删除主字段（primary field）。
 
 ## 错误处理
 - HTTP 200 但响应体包含 `success=false` 或 `error` 视为业务失败。

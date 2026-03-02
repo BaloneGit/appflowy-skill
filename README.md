@@ -22,6 +22,9 @@ python skills/appflowy-api/scripts/appflowy_skill.py help apply-grid
 python skills/appflowy-api/scripts/appflowy_skill.py help database-query
 python skills/appflowy-api/scripts/appflowy_skill.py help page-get-tree
 python skills/appflowy-api/scripts/appflowy_skill.py help page-get-blocks
+python skills/appflowy-api/scripts/appflowy_skill.py help page-delete-blocks
+python skills/appflowy-api/scripts/appflowy_skill.py help rename-db-field
+python skills/appflowy-api/scripts/appflowy_skill.py help delete-db-field
 ```
 
 ## 结构
@@ -50,8 +53,22 @@ python skills/appflowy-api/scripts/appflowy_skill.py page-get-tree --config skil
 # 读取页面 block（树形 / 扁平）
 python skills/appflowy-api/scripts/appflowy_skill.py page-get-blocks --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --view-id <view_id>
 python skills/appflowy-api/scripts/appflowy_skill.py page-get-blocks --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --view-id <view_id> --flat
+
+# 删除页面 block（支持 dry-run）
+python skills/appflowy-api/scripts/appflowy_skill.py page-delete-blocks --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --view-id <view_id> --block-id <block_id> --dry-run
+python skills/appflowy-api/scripts/appflowy_skill.py page-delete-blocks --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --view-id <view_id> --block-id <block_id>
+
+# 字段改名（支持 field_id / field_name）
+python skills/appflowy-api/scripts/appflowy_skill.py rename-db-field --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --database-id <database_id> --field-id <field_id> --new-name <new_name> --dry-run
+python skills/appflowy-api/scripts/appflowy_skill.py rename-db-field --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --database-id <database_id> --field-id <field_id> --new-name <new_name>
+
+# 字段删除（默认 dry-run，执行需 --execute --yes）
+python skills/appflowy-api/scripts/appflowy_skill.py delete-db-field --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --database-id <database_id> --field-id <field_id>
+python skills/appflowy-api/scripts/appflowy_skill.py delete-db-field --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --database-id <database_id> --field-id <field_id> --execute --yes
 ```
 
 > 约定：`SingleSelect`/`MultiSelect` 行值请使用选项名称，不要直接提交 `selected_option_ids`。
 >
 > 兼容性：`database-query` 读取 `--query-file` 时支持 UTF-8 与 UTF-8 BOM（Windows PowerShell 默认 UTF-8 输出可直接使用）。
+>
+> 保护策略：`delete-db-field` 默认不执行删除（dry-run），并且禁止删除主字段。

@@ -399,6 +399,76 @@ def run_node_update_select_options(
     return update
 
 
+def run_node_rename_fields(
+    doc_state: list[int],
+    state_vector: list[int],
+    renames: list[dict],
+) -> list[int]:
+    script_path = Path(__file__).resolve().parent / "collab_rename_fields.mjs"
+    if not script_path.exists():
+        raise AppFlowyError(f"Missing script: {script_path}")
+
+    payload = json.dumps(
+        {
+            "doc_state": doc_state,
+            "state_vector": state_vector,
+            "renames": renames,
+        }
+    )
+    result = subprocess.run(
+        ["node", str(script_path)],
+        input=payload,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        raise AppFlowyError(f"Node script failed: {result.stderr.strip()}")
+    try:
+        output = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        raise AppFlowyError("Failed to parse Node output") from exc
+    update = output.get("update")
+    if not isinstance(update, list):
+        raise AppFlowyError("Node output missing update")
+    return update
+
+
+def run_node_delete_fields(
+    doc_state: list[int],
+    state_vector: list[int],
+    field_ids: list[str],
+) -> list[int]:
+    script_path = Path(__file__).resolve().parent / "collab_delete_fields.mjs"
+    if not script_path.exists():
+        raise AppFlowyError(f"Missing script: {script_path}")
+
+    payload = json.dumps(
+        {
+            "doc_state": doc_state,
+            "state_vector": state_vector,
+            "field_ids": field_ids,
+        }
+    )
+    result = subprocess.run(
+        ["node", str(script_path)],
+        input=payload,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        raise AppFlowyError(f"Node script failed: {result.stderr.strip()}")
+    try:
+        output = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        raise AppFlowyError("Failed to parse Node output") from exc
+    update = output.get("update")
+    if not isinstance(update, list):
+        raise AppFlowyError("Node output missing update")
+    return update
+
+
 def is_empty_value(value: object) -> bool:
     if value is None:
         return True

@@ -40,6 +40,9 @@ python skills/appflowy-api/scripts/appflowy_skill.py help apply-grid
 python skills/appflowy-api/scripts/appflowy_skill.py help database-query
 python skills/appflowy-api/scripts/appflowy_skill.py help page-get-tree
 python skills/appflowy-api/scripts/appflowy_skill.py help page-get-blocks
+python skills/appflowy-api/scripts/appflowy_skill.py help page-delete-blocks
+python skills/appflowy-api/scripts/appflowy_skill.py help rename-db-field
+python skills/appflowy-api/scripts/appflowy_skill.py help delete-db-field
 ```
 
 ## 配置优先级
@@ -108,6 +111,24 @@ python skills/appflowy-api/scripts/page_tree.py --config skills/appflowy-api/ref
 python skills/appflowy-api/scripts/page_blocks.py --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --view-id <view_id> --flat
 ```
 
+```bash
+# 删除页面 block（先 dry-run，确认后执行）
+python skills/appflowy-api/scripts/delete_page_blocks.py --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --view-id <view_id> --block-id <block_id> --dry-run
+python skills/appflowy-api/scripts/delete_page_blocks.py --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --view-id <view_id> --block-id <block_id>
+```
+
+```bash
+# 字段改名（支持按 field_id / field_name）
+python skills/appflowy-api/scripts/rename_db_field.py --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --database-id <database_id> --field-id <field_id> --new-name <new_name> --dry-run
+python skills/appflowy-api/scripts/rename_db_field.py --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --database-id <database_id> --field-id <field_id> --new-name <new_name>
+```
+
+```bash
+# 字段删除（默认 dry-run；执行必须 --execute --yes；禁止删除主字段）
+python skills/appflowy-api/scripts/delete_db_field.py --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --database-id <database_id> --field-id <field_id>
+python skills/appflowy-api/scripts/delete_db_field.py --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --database-id <database_id> --field-id <field_id> --execute --yes
+```
+
 ## 子内容规则（子任务 / 子项 / 子 Grid）
 1. `子任务`（Checklist/Todo 列）：适用于**简单描述**的子内容，不需要额外字段。
 2. `子项`（Relation 列）：当子内容与父级**字段结构一致**时，通过关联行管理。
@@ -134,10 +155,12 @@ python skills/appflowy-api/scripts/page_blocks.py --config skills/appflowy-api/r
 3. 容器间调用优先使用内部地址（如 `http://gotrue:9999`、`http://appflowy_cloud:8000`）。
 4. 删除行时，`/database/{database_id}/row` 没有 `DELETE` 路由；应使用 `delete_rows.py` 通过 collab 更新 `row_orders` 完成删除。
 5. `database-query` 的 `--query-file` 支持 UTF-8/UTF-8 BOM（Windows PowerShell 导出的 UTF-8 也可读取）。
+6. 字段改名/字段删除当前通过 collab 更新实现；其中字段删除默认 dry-run，执行必须显式传入 `--execute --yes`。
 
 ## 资源
 1. `skills/appflowy-api/scripts/`：Python/Node 脚本与通用库。
 2. `skills/appflowy-api/references/`：API 参考与模板文件。
 3. `skills/appflowy-api/references/templates/`：UTF-8 模板，避免乱码与字段顺序问题。
 4. `skills/appflowy-api/references/v0.2_m1_regression.md`：v0.2 M1 真实联调记录。
-5. `skills/appflowy-api/examples/`：示例命令与用法。
+5. `skills/appflowy-api/references/v0.2_m2_regression.md`：v0.2 M2 真实联调记录。
+6. `skills/appflowy-api/examples/`：示例命令与用法。

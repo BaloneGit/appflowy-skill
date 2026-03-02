@@ -16,12 +16,15 @@ COMMANDS = {
     "database-query": "database_query.py",
     "page-get-tree": "page_tree.py",
     "page-get-blocks": "page_blocks.py",
+    "page-delete-blocks": "delete_page_blocks.py",
     "delete-rows": "delete_rows.py",
     "get-row-detail": "get_row_detail.py",
     "search": "search.py",
     "create-page-view": "create_page_view.py",
     "append-block": "append_block.py",
     "add-db-field": "add_db_field.py",
+    "rename-db-field": "rename_db_field.py",
+    "delete-db-field": "delete_db_field.py",
     "upsert-row": "upsert_row.py",
 }
 

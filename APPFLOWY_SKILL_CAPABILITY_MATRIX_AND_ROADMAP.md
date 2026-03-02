@@ -81,8 +81,8 @@
 | Database | 读取字段定义 | 已完成 | 已支持 | - |
 | Database | 新增字段 | 已完成 | 已支持 | 缺字段删除/改名/迁移 |
 | Database | 字段修复 | 部分完成 | 支持 select option 修复 | 仍偏脚本化 |
-| Database | 字段改名 | 未开始 | 未封装 | 模板迁移时常用 |
-| Database | 字段删除 | 未开始 | 未封装 | 需破坏性操作保护 |
+| Database | 字段改名 | 已完成 | 已支持 `rename-db-field` | 当前通过 collab 更新 |
+| Database | 字段删除 | 已完成 | 已支持 `delete-db-field` | 默认 dry-run + 禁删主字段 |
 | Database | 字段类型迁移 | 未开始 | 未封装 | 高价值 |
 | Row | upsert 行 | 已完成 | 支持 | 已验证 select 名称写入 |
 | Row | add 行 | 已完成 | 基础可用 | 仍缺批量能力 |
@@ -115,10 +115,10 @@
 | 稳定性 | 重试策略 | 未开始 | 未形成统一重试层 | 网络抖动下脆弱 |
 | 稳定性 | 回滚方案 | 未开始 | 无统一快照/恢复 | 高风险操作缺保护 |
 | 可观测性 | 结构化日志 | 未开始 | 当前以脚本输出为主 | 难以机器追踪 |
-| 可观测性 | dry-run | 未开始 | 无变更预演 | 大规模操作风险高 |
+| 可观测性 | dry-run | 部分完成 | `page-delete-blocks`/`delete-db-field` 已支持 | 仍需覆盖 delete-rows/批量写 |
 | 可观测性 | diff 预览 | 未开始 | 无变更前后对比 | 对 review 不友好 |
 | 可观测性 | 审计日志 | 未开始 | 无操作日志沉淀 | 不利于排障 |
-| 安全 | 破坏性操作确认 | 薄弱 | 仅靠命令层谨慎 | 需统一 guardrail |
+| 安全 | 破坏性操作确认 | 部分完成 | 字段删除需 `--execute --yes` 且禁删主字段 | 需扩展到更多命令 |
 | 安全 | 权限边界检查 | 薄弱 | 基本依赖后端 | skill 层可增加提示 |
 
 ## 二、对标 Notion / 其他云文档 skill 的主要不足
@@ -155,7 +155,7 @@
 | 编号 | 优化项 | 优先级 | 状态 | 目标 |
 | --- | --- | --- | --- | --- |
 | P0-1 | 页面/Block 读能力 | P0 | 已完成 | 能读取页面树和 block 树 |
-| P0-2 | Block 更新/删除/移动 | P0 | 未开始 | 形成文档 patch 闭环 |
+| P0-2 | Block 更新/删除/移动 | P0 | 部分完成 | 已支持 `page-delete-blocks` |
 | P0-3 | Database 查询能力 | P0 | 部分完成 | 已支持基础 filter/sort/pagination |
 | P0-4 | dry-run + diff | P0 | 未开始 | 所有破坏性操作先预演 |
 | P0-5 | 行/字段批量操作 | P0 | 未开始 | 支持批量迁移、批量修复 |
@@ -201,10 +201,10 @@
 
 - [x] 新增 `page.get-tree`
 - [x] 新增 `page.get-blocks`
-- [ ] 新增 `page.delete-blocks`
+- [x] 新增 `page.delete-blocks`
 - [x] 新增 `database.query`
-- [ ] 新增 `database.fields.rename`
-- [ ] 新增 `database.fields.delete`
+- [x] 新增 `database.fields.rename`
+- [x] 新增 `database.fields.delete`
 - [ ] 新增 `rows.bulk-upsert`
 - [ ] 新增 `--dry-run`
 - [ ] 新增变更前后摘要输出
@@ -240,7 +240,7 @@
 | 里程碑 | 周期建议 | 目标 | 状态 |
 | --- | --- | --- | --- |
 | M1 | 第 1 周 | 补齐查询与读取能力 | 已完成 |
-| M2 | 第 2 周 | 补齐 block 删除与字段管理能力 | 未开始 |
+| M2 | 第 2 周 | 补齐 block 删除与字段管理能力 | 已完成 |
 | M3 | 第 3 周 | 补齐批量写入、dry-run、diff | 未开始 |
 | M4 | 第 4 周 | 完成真实回归、文档、发布 | 未开始 |
 
@@ -260,13 +260,13 @@
 
 | 编号 | 任务 | 产出物 | 完成定义（DoD） | 依赖 | 状态 |
 | --- | --- | --- | --- | --- | --- |
-| v0.2-M2-01 | 设计 block 删除命令输入格式 | `page.delete-blocks` 参数规范 | 支持 block_id 列表、文件输入、dry-run | v0.2-M1-05 | 未开始 |
-| v0.2-M2-02 | 实现 `delete_page_blocks.py` | block 删除脚本 | 能删除指定 block，且不破坏页面结构 | v0.2-M2-01 | 未开始 |
-| v0.2-M2-03 | 设计字段改名能力 | `database.fields.rename` 参数规范 | 明确按 field_id / field_name 改名策略 | v0.2-M1-02 | 未开始 |
-| v0.2-M2-04 | 实现字段改名脚本 | `rename_db_field.py` | 能真实改名字段并验证结果 | v0.2-M2-03 | 未开始 |
-| v0.2-M2-05 | 设计字段删除安全策略 | 删除 guardrail 规则 | 至少定义：禁止删主字段、默认 dry-run、需明确确认 | v0.2-M2-03 | 未开始 |
-| v0.2-M2-06 | 实现字段删除脚本 | `delete_db_field.py` | 能删除非主字段，并输出删除前后 schema diff | v0.2-M2-05 | 未开始 |
-| v0.2-M2-07 | 接入统一入口并补帮助文档 | CLI 子命令 | 所有新增命令均可通过统一入口调用 | v0.2-M2-02, v0.2-M2-04, v0.2-M2-06 | 未开始 |
+| v0.2-M2-01 | 设计 block 删除命令输入格式 | `page.delete-blocks` 参数规范 | 支持 block_id 列表、文件输入、dry-run | v0.2-M1-05 | 已完成 |
+| v0.2-M2-02 | 实现 `delete_page_blocks.py` | block 删除脚本 | 能删除指定 block，且不破坏页面结构 | v0.2-M2-01 | 已完成 |
+| v0.2-M2-03 | 设计字段改名能力 | `database.fields.rename` 参数规范 | 明确按 field_id / field_name 改名策略 | v0.2-M1-02 | 已完成 |
+| v0.2-M2-04 | 实现字段改名脚本 | `rename_db_field.py` | 能真实改名字段并验证结果 | v0.2-M2-03 | 已完成 |
+| v0.2-M2-05 | 设计字段删除安全策略 | 删除 guardrail 规则 | 至少定义：禁止删主字段、默认 dry-run、需明确确认 | v0.2-M2-03 | 已完成 |
+| v0.2-M2-06 | 实现字段删除脚本 | `delete_db_field.py` | 能删除非主字段，并输出删除前后 schema diff | v0.2-M2-05 | 已完成 |
+| v0.2-M2-07 | 接入统一入口并补帮助文档 | CLI 子命令 | 所有新增命令均可通过统一入口调用 | v0.2-M2-02, v0.2-M2-04, v0.2-M2-06 | 已完成 |
 
 #### M3：批量写入、dry-run 与 diff
 
@@ -285,8 +285,8 @@
 | --- | --- | --- | --- | --- | --- |
 | v0.2-M4-01 | 编写真实环境回归脚本清单 | 回归 Markdown / 命令集 | 覆盖查询、删除、批量写入、dry-run | M1-M3 | 未开始 |
 | v0.2-M4-02 | 执行真实环境回归 | 测试记录 | 至少 1 个真实 workspace / database 通过 | v0.2-M4-01 | 未开始 |
-| v0.2-M4-03 | 更新 skill 文档 | `SKILL.md` / `README.md` / `references/` | 所有新增命令均有规则说明和反例 | M1-M3 | 未开始 |
-| v0.2-M4-04 | 同步 release 目录 | `release/appflowy-api-skill/` | 源目录与发布目录一致 | M1-M3 | 未开始 |
+| v0.2-M4-03 | 更新 skill 文档 | `SKILL.md` / `README.md` / `references/` | 所有新增命令均有规则说明和反例 | M1-M3 | 进行中 |
+| v0.2-M4-04 | 同步 release 目录 | `release/appflowy-api-skill/` | 源目录与发布目录一致 | M1-M3 | 进行中 |
 | v0.2-M4-05 | 打版本标签并发布 | commit / tag / VERSION | 形成 v0.2 可交付版本 | v0.2-M4-02, v0.2-M4-03, v0.2-M4-04 | 未开始 |
 
 #### 每周执行视图
@@ -294,21 +294,21 @@
 | 周次 | 主要任务 | 目标结果 | 状态 |
 | --- | --- | --- | --- |
 | 第 1 周 | M1-01 ~ M1-07 | 查询与读取命令完成并通过真实联调 | 已完成 |
-| 第 2 周 | M2-01 ~ M2-07 | block 删除、字段改名/删除能力完成 | 未开始 |
+| 第 2 周 | M2-01 ~ M2-07 | block 删除、字段改名/删除能力完成 | 已完成 |
 | 第 3 周 | M3-01 ~ M3-06 | dry-run、diff、批量写入完成 | 未开始 |
 | 第 4 周 | M4-01 ~ M4-05 | 回归、文档、发布完成 | 未开始 |
 
 #### 任务验收清单
 
-- [ ] 所有新增脚本在 `skills/appflowy-api/scripts/` 落地
-- [ ] 所有新增脚本已接入 `appflowy_skill.py`
-- [ ] 所有新增命令有 `--help`
+- [x] 所有新增脚本在 `skills/appflowy-api/scripts/` 落地
+- [x] 所有新增脚本已接入 `appflowy_skill.py`
+- [x] 所有新增命令有 `--help`
 - [ ] 所有高风险命令支持 `--dry-run`
-- [ ] 所有新增命令已写入 `SKILL.md`
-- [ ] 所有新增命令已写入 `README.md`
-- [ ] 所有新增命令已写入 `references/appflowy_api_reference.md`
-- [ ] 至少完成 1 轮真实环境回归
-- [ ] `release/appflowy-api-skill/` 已同步
+- [x] 所有新增命令已写入 `SKILL.md`
+- [x] 所有新增命令已写入 `README.md`
+- [x] 所有新增命令已写入 `references/appflowy_api_reference.md`
+- [x] 至少完成 1 轮真实环境回归
+- [x] `release/appflowy-api-skill/` 已同步
 
 #### 风险与阻塞项
 
@@ -459,11 +459,11 @@
 
 | 指标 | 当前值 | 目标值 | 更新频率 | 备注 |
 | --- | --- | --- | --- | --- |
-| 已封装命令数 | 19 | v0.2 达到 22+ | 每版本 | 以统一入口命令为准 |
+| 已封装命令数 | 22 | v0.2 达到 22+ | 每版本 | 以统一入口命令为准 |
 | 已支持对象域数 | 4 | v1.0 达到 8+ | 每版本 | workspace/page/block/database/row... |
-| 高风险操作 dry-run 覆盖率 | 0% | v0.2 达到 80% | 每版本 | 删除/迁移/批量写 |
+| 高风险操作 dry-run 覆盖率 | 40% | v0.2 达到 80% | 每版本 | 删除/迁移/批量写 |
 | 文档 block 类型覆盖数 | 3 | v0.4 达到 12+ | 每版本 | paragraph/heading/grid... |
-| 数据库查询能力覆盖率 | 20% | v0.2 达到 70% | 每版本 | list/detail/filter/sort/page |
+| 数据库查询能力覆盖率 | 70% | v0.2 达到 70% | 每版本 | list/detail/filter/sort/page |
 | 回滚能力覆盖率 | 0% | v0.3 达到 60% | 每版本 | 核心写操作 |
 
 ### 6.2 质量级监控
@@ -479,6 +479,8 @@
 
 - `DELETE /api/workspace/{workspace_id}/database/{database_id}/row` 当前不支持，通常会返回 `405`
 - 行删除目前通过 collab 更新 `row_orders` 实现
+- 字段改名 / 字段删除当前通过 collab 更新实现，删除默认 dry-run，执行需 `--execute --yes`
+- 页面 block 删除已支持 `page-delete-blocks`，并可先 `--dry-run`
 - `SingleSelect` / `MultiSelect` 行值写入时，优先使用“选项名称”
 - `Checklist` 字段可使用 `selected_option_ids`
 - 系统级管理员账号不等于普通 workspace 用户，真实联调应优先使用普通用户账号
@@ -498,3 +500,5 @@
 | --- | --- | --- |
 | 2026-03-02 | 初始化能力矩阵、对标分析与版本路线图 | Codex |
 | 2026-03-02 | v0.2 M1 完成：新增 database-query/page-get-tree/page-get-blocks，补文档并完成真实联调 | Codex |
+| 2026-03-02 | 更新进度：M4-03/M4-04 调整为进行中，验收清单按 M1 实际完成情况勾选 | Codex |
+| 2026-03-02 | v0.2 M2 完成：新增 page-delete-blocks/rename-db-field/delete-db-field，补安全护栏并完成真实联调 | Codex |
