@@ -37,6 +37,9 @@ curl -sS "http://10.60.0.189/api/search/<workspace_id>?query=test" \
 ```bash
 python skills/appflowy-api/scripts/appflowy_skill.py list
 python skills/appflowy-api/scripts/appflowy_skill.py help apply-grid
+python skills/appflowy-api/scripts/appflowy_skill.py help database-query
+python skills/appflowy-api/scripts/appflowy_skill.py help page-get-tree
+python skills/appflowy-api/scripts/appflowy_skill.py help page-get-blocks
 ```
 
 ## 配置优先级
@@ -77,6 +80,34 @@ python skills/appflowy-api/scripts/apply_grid_template.py --config skills/appflo
 python skills/appflowy-api/scripts/delete_rows.py --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --database-id <database_id> --row-ids <row_id_1,row_id_2>
 ```
 
+```bash
+# 查询数据库（支持 filter/sort/limit/offset；推荐 query-file）
+python skills/appflowy-api/scripts/database_query.py --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --database-id <database_id> --query-file <query.json>
+```
+
+```json
+{
+  "filter": [
+    { "field": "Status", "op": "eq", "value": "To Do" }
+  ],
+  "sort": [
+    { "field": "Last modified", "direction": "desc" }
+  ],
+  "limit": 20,
+  "offset": 0
+}
+```
+
+```bash
+# 读取页面树（支持 root_view_id 与 depth）
+python skills/appflowy-api/scripts/page_tree.py --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --depth 3 --compact
+```
+
+```bash
+# 读取页面 block 树（默认树形；--flat 扁平输出；--raw 原始 collab）
+python skills/appflowy-api/scripts/page_blocks.py --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --view-id <view_id> --flat
+```
+
 ## 子内容规则（子任务 / 子项 / 子 Grid）
 1. `子任务`（Checklist/Todo 列）：适用于**简单描述**的子内容，不需要额外字段。
 2. `子项`（Relation 列）：当子内容与父级**字段结构一致**时，通过关联行管理。
@@ -102,9 +133,11 @@ python skills/appflowy-api/scripts/delete_rows.py --config skills/appflowy-api/r
 2. 控制台提示无法连接时，优先检查宿主机 `80/443` 可达性与防火墙规则。
 3. 容器间调用优先使用内部地址（如 `http://gotrue:9999`、`http://appflowy_cloud:8000`）。
 4. 删除行时，`/database/{database_id}/row` 没有 `DELETE` 路由；应使用 `delete_rows.py` 通过 collab 更新 `row_orders` 完成删除。
+5. `database-query` 的 `--query-file` 支持 UTF-8/UTF-8 BOM（Windows PowerShell 导出的 UTF-8 也可读取）。
 
 ## 资源
 1. `skills/appflowy-api/scripts/`：Python/Node 脚本与通用库。
 2. `skills/appflowy-api/references/`：API 参考与模板文件。
 3. `skills/appflowy-api/references/templates/`：UTF-8 模板，避免乱码与字段顺序问题。
-4. `skills/appflowy-api/examples/`：示例命令与用法。
+4. `skills/appflowy-api/references/v0.2_m1_regression.md`：v0.2 M1 真实联调记录。
+5. `skills/appflowy-api/examples/`：示例命令与用法。

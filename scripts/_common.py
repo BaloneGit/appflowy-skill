@@ -12,7 +12,7 @@ def load_config(path: Optional[str]) -> Dict[str, Any]:
     cfg_path = Path(path)
     if not cfg_path.exists():
         raise AppFlowyError(f"Config file not found: {cfg_path}")
-    return json.loads(cfg_path.read_text(encoding="utf-8"))
+    return json.loads(cfg_path.read_text(encoding="utf-8-sig"))
 
 
 def _pick(*values):
@@ -79,7 +79,7 @@ def load_json_payload(payload: Optional[str], payload_file: Optional[str]) -> Di
     if payload and payload_file:
         raise AppFlowyError("Provide only one of --payload or --payload-file")
     if payload_file:
-        text = Path(payload_file).read_text(encoding="utf-8")
+        text = Path(payload_file).read_text(encoding="utf-8-sig")
         return json.loads(text)
     if payload:
         return json.loads(payload)

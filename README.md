@@ -19,6 +19,9 @@ python skills/appflowy-api/scripts/appflowy_skill.py list
 查看某个命令帮助：
 ```bash
 python skills/appflowy-api/scripts/appflowy_skill.py help apply-grid
+python skills/appflowy-api/scripts/appflowy_skill.py help database-query
+python skills/appflowy-api/scripts/appflowy_skill.py help page-get-tree
+python skills/appflowy-api/scripts/appflowy_skill.py help page-get-blocks
 ```
 
 ## 结构
@@ -37,6 +40,18 @@ python skills/appflowy-api/scripts/appflowy_skill.py apply-grid --config skills/
 
 # 删除行（通过 collab 更新 row_orders）
 python skills/appflowy-api/scripts/appflowy_skill.py delete-rows --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --database-id <database_id> --row-ids <row_id_1,row_id_2>
+
+# 查询数据库（推荐 query-file）
+python skills/appflowy-api/scripts/appflowy_skill.py database-query --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --database-id <database_id> --query-file .tmp/db_query.json
+
+# 读取页面树
+python skills/appflowy-api/scripts/appflowy_skill.py page-get-tree --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --depth 3 --compact
+
+# 读取页面 block（树形 / 扁平）
+python skills/appflowy-api/scripts/appflowy_skill.py page-get-blocks --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --view-id <view_id>
+python skills/appflowy-api/scripts/appflowy_skill.py page-get-blocks --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --view-id <view_id> --flat
 ```
 
 > 约定：`SingleSelect`/`MultiSelect` 行值请使用选项名称，不要直接提交 `selected_option_ids`。
+>
+> 兼容性：`database-query` 读取 `--query-file` 时支持 UTF-8 与 UTF-8 BOM（Windows PowerShell 默认 UTF-8 输出可直接使用）。

@@ -18,6 +18,7 @@
 - `POST /api/workspace/{workspace_id}/page-view`
 - `POST /api/workspace/{workspace_id}/page-view/{view_id}/append-block`
 - `POST /api/workspace/{workspace_id}/page-view/{view_id}/database-view`
+- `GET /api/workspace/{workspace_id}/folder?depth=...&root_view_id=...`
 
 ### 数据库
 - `GET /api/workspace/{workspace_id}/database`
@@ -81,6 +82,27 @@
 ### Select 字段写入约定（重要）
 - `SingleSelect`/`MultiSelect` 用**选项名称**写入（字符串/字符串数组）。
 - 不要把 `selected_option_ids` 直接传给这两类字段的 row API；该结构常用于 `Checklist` 字段。
+
+## skill 命令补充（v0.2 M1）
+
+### `database-query`
+- 脚本：`python skills/appflowy-api/scripts/database_query.py ...`
+- 统一入口：`python skills/appflowy-api/scripts/appflowy_skill.py database-query ...`
+- 支持：
+  - 查询参数：`filter` / `sort` / `limit` / `offset`
+  - 快速参数：`--filter-field/--filter-op/--filter-value`、`--sort-field/--sort-direction`
+  - 输出计数：`total_row_ids`、`rows_loaded`、`rows_after_filter`、`rows_returned`
+- `--query-file` 支持 UTF-8 与 UTF-8 BOM。
+
+### `page-get-tree`
+- 脚本：`python skills/appflowy-api/scripts/page_tree.py ...`
+- 统一入口：`python skills/appflowy-api/scripts/appflowy_skill.py page-get-tree ...`
+- 支持 `--depth`、`--root-view-id`、`--compact`。
+
+### `page-get-blocks`
+- 脚本：`python skills/appflowy-api/scripts/page_blocks.py ...`
+- 统一入口：`python skills/appflowy-api/scripts/appflowy_skill.py page-get-blocks ...`
+- 支持 `--raw`（原始 collab JSON）与 `--flat`（扁平 block 列表）。
 
 ## 错误处理
 - HTTP 200 但响应体包含 `success=false` 或 `error` 视为业务失败。
