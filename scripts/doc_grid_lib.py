@@ -517,6 +517,36 @@ def cleanup_default_rows(
     if not row_ids:
         return []
 
+    empty_ids = find_empty_row_ids(
+        client,
+        token,
+        workspace_id,
+        database_id,
+        max_remove=max_remove,
+    )
+    if not empty_ids:
+        return []
+
+    doc_state, state_vector = fetch_collab_state(
+        client, token, workspace_id, database_id, DB_COLLAB_TYPE
+    )
+    update = run_node_delete_row_orders(doc_state, state_vector, empty_ids, view_ids=view_ids)
+    post_web_update(client, token, workspace_id, database_id, DB_COLLAB_TYPE, update)
+    return empty_ids
+
+
+def find_empty_row_ids(
+    client,
+    token: str,
+    workspace_id: str,
+    database_id: str,
+    *,
+    max_remove: int = 3,
+) -> list[str]:
+    row_ids = list_row_ids(client, token, workspace_id, database_id)
+    if not row_ids:
+        return []
+
     row_details = get_row_details(client, token, workspace_id, database_id, row_ids)
     ignore_fields = {
         "Done",
@@ -550,16 +580,9 @@ def cleanup_default_rows(
             continue
         if is_row_empty(cells, ignore_fields):
             empty_ids.append(row_id)
-    if not empty_ids:
+    if max_remove <= 0:
         return []
-
-    empty_ids = empty_ids[:max_remove]
-    doc_state, state_vector = fetch_collab_state(
-        client, token, workspace_id, database_id, DB_COLLAB_TYPE
-    )
-    update = run_node_delete_row_orders(doc_state, state_vector, empty_ids, view_ids=view_ids)
-    post_web_update(client, token, workspace_id, database_id, DB_COLLAB_TYPE, update)
-    return empty_ids
+    return empty_ids[:max_remove]
 
 
 def build_select_content(options: list[dict], disable_color: bool = False) -> str:

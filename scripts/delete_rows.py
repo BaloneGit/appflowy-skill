@@ -1,10 +1,10 @@
 import argparse
 from collections import OrderedDict
-from pathlib import Path
 
 import doc_grid_lib as grid_lib
-from _common import build_client, print_json, resolve_token
+from _common import build_client, load_text_lines, print_json, resolve_token
 from appflowy_client import AppFlowyError
+from change_report import new_change_report, set_after, set_before, set_plan, set_summary
 
 
 def _split_csv(value: str) -> list[str]:
@@ -19,11 +19,7 @@ def _collect_row_ids(row_ids: list[str] | None, row_ids_csv: str | None, row_ids
     if row_ids_csv:
         items.extend(_split_csv(row_ids_csv))
     if row_ids_file:
-        text = Path(row_ids_file).read_text(encoding="utf-8")
-        for line in text.splitlines():
-            row_id = line.strip()
-            if row_id:
-                items.append(row_id)
+        items.extend(load_text_lines(row_ids_file))
     dedup = OrderedDict()
     for item in items:
         dedup[item] = True
@@ -64,6 +60,7 @@ def main() -> int:
         default=100,
         help="Maximum rows removed when --remove-empty is enabled. Default: 100.",
     )
+    parser.add_argument("--dry-run", action="store_true", help="Preview changes only.")
     parser.add_argument("--token", default=None)
     parser.add_argument("--email", default=None)
     parser.add_argument("--password", default=None)
@@ -90,15 +87,63 @@ def main() -> int:
     matched_explicit = [row_id for row_id in explicit_row_ids if row_id in existing_ids]
     not_found_explicit = [row_id for row_id in explicit_row_ids if row_id not in existing_ids]
 
-    removed_explicit: list[str] = []
-    if matched_explicit:
+    empty_candidates: list[str] = []
+    if args.remove_empty:
+        empty_candidates = grid_lib.find_empty_row_ids(
+            client,
+            token,
+            args.workspace_id,
+            args.database_id,
+            max_remove=args.max_empty_remove,
+        )
+
+    dedup_delete = OrderedDict()
+    for row_id in matched_explicit:
+        dedup_delete[row_id] = "explicit"
+    for row_id in empty_candidates:
+        dedup_delete[row_id] = "empty"
+    planned_delete_ids = list(dedup_delete.keys())
+    planned_explicit = [row_id for row_id in matched_explicit if row_id in dedup_delete]
+    planned_empty = [row_id for row_id in empty_candidates if row_id in dedup_delete]
+
+    report = new_change_report(
+        action="delete_rows",
+        target_type="database",
+        target_id=args.database_id,
+        dry_run=bool(args.dry_run),
+        input_data={
+            "workspace_id": args.workspace_id,
+            "database_id": args.database_id,
+            "view_ids": view_ids,
+            "explicit_row_ids_requested": explicit_row_ids,
+            "remove_empty": bool(args.remove_empty),
+            "max_empty_remove": args.max_empty_remove,
+        },
+    )
+    set_before(
+        report,
+        row_count_before=len(existing_ids),
+        matched_explicit_count=len(matched_explicit),
+        not_found_explicit_count=len(not_found_explicit),
+        empty_candidate_count=len(empty_candidates),
+    )
+    set_plan(
+        report,
+        planned_delete_count=len(planned_delete_ids),
+        planned_explicit_ids=planned_explicit,
+        planned_empty_ids=planned_empty,
+        not_found_explicit_ids=not_found_explicit,
+    )
+
+    deleted_row_ids: list[str] = []
+    if not args.dry_run and planned_delete_ids:
         doc_state, state_vector = grid_lib.fetch_collab_state(
             client, token, args.workspace_id, args.database_id, grid_lib.DB_COLLAB_TYPE
         )
         update = grid_lib.run_node_delete_row_orders(
             doc_state,
             state_vector,
-            matched_explicit,
+            planned_delete_ids,
             view_ids=view_ids or None,
         )
         grid_lib.post_web_update(
@@ -109,18 +154,21 @@ def main() -> int:
             grid_lib.DB_COLLAB_TYPE,
             update,
         )
-        removed_explicit = matched_explicit
+        deleted_row_ids = planned_delete_ids
 
-    removed_empty: list[str] = []
-    if args.remove_empty:
-        removed_empty = grid_lib.cleanup_default_rows(
-            client,
-            token,
-            args.workspace_id,
-            args.database_id,
-            max_remove=args.max_empty_remove,
-            view_ids=view_ids or None,
-        )
+    after_ids = set(grid_lib.list_row_ids(client, token, args.workspace_id, args.database_id))
+    set_after(
+        report,
+        row_count_after=len(after_ids),
+        deleted_row_ids=deleted_row_ids,
+        still_present_deleted_ids=[row_id for row_id in deleted_row_ids if row_id in after_ids],
+    )
+    set_summary(
+        report,
+        planned_delete_count=len(planned_delete_ids),
+        deleted_count=len(deleted_row_ids),
+        explicit_not_found_count=len(not_found_explicit),
+    )
 
     print_json(
         {
@@ -128,10 +176,13 @@ def main() -> int:
             "database_id": args.database_id,
             "view_ids": view_ids,
             "explicit_row_ids_requested": explicit_row_ids,
-            "explicit_row_ids_removed": removed_explicit,
             "explicit_row_ids_not_found": not_found_explicit,
-            "empty_row_ids_removed": removed_empty,
+            "planned_explicit_row_ids": planned_explicit,
+            "planned_empty_row_ids": planned_empty,
+            "deleted_row_ids": deleted_row_ids,
+            "dry_run": bool(args.dry_run),
             "note": "Rows are removed from row_orders by collab update (no HTTP DELETE row endpoint).",
+            "change_report": report,
         }
     )
     return 0
@@ -139,4 +190,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

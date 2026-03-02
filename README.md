@@ -25,6 +25,7 @@ python skills/appflowy-api/scripts/appflowy_skill.py help page-get-blocks
 python skills/appflowy-api/scripts/appflowy_skill.py help page-delete-blocks
 python skills/appflowy-api/scripts/appflowy_skill.py help rename-db-field
 python skills/appflowy-api/scripts/appflowy_skill.py help delete-db-field
+python skills/appflowy-api/scripts/appflowy_skill.py help bulk-upsert-rows
 ```
 
 ## 结构
@@ -65,6 +66,10 @@ python skills/appflowy-api/scripts/appflowy_skill.py rename-db-field --config sk
 # 字段删除（默认 dry-run，执行需 --execute --yes）
 python skills/appflowy-api/scripts/appflowy_skill.py delete-db-field --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --database-id <database_id> --field-id <field_id>
 python skills/appflowy-api/scripts/appflowy_skill.py delete-db-field --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --database-id <database_id> --field-id <field_id> --execute --yes
+
+# 批量 upsert 行（输出新增/更新/失败摘要）
+python skills/appflowy-api/scripts/appflowy_skill.py bulk-upsert-rows --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --database-id <database_id> --rows-file .tmp/rows.json --pre-hash-prefix biz --dry-run
+python skills/appflowy-api/scripts/appflowy_skill.py bulk-upsert-rows --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --database-id <database_id> --rows-file .tmp/rows.json --pre-hash-prefix biz
 ```
 
 > 约定：`SingleSelect`/`MultiSelect` 行值请使用选项名称，不要直接提交 `selected_option_ids`。
@@ -72,3 +77,5 @@ python skills/appflowy-api/scripts/appflowy_skill.py delete-db-field --config sk
 > 兼容性：`database-query` 读取 `--query-file` 时支持 UTF-8 与 UTF-8 BOM（Windows PowerShell 默认 UTF-8 输出可直接使用）。
 >
 > 保护策略：`delete-db-field` 默认不执行删除（dry-run），并且禁止删除主字段。
+>
+> 统一输出：M3 起删除类/批量命令会返回 `change_report`，包含 `before`/`plan`/`after`/`summary` 四段。

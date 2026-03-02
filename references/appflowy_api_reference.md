@@ -84,7 +84,7 @@
 - `SingleSelect`/`MultiSelect` 用**选项名称**写入（字符串/字符串数组）。
 - 不要把 `selected_option_ids` 直接传给这两类字段的 row API；该结构常用于 `Checklist` 字段。
 
-## skill 命令补充（v0.2 M1）
+## skill 命令补充（v0.2）
 
 ### `database-query`
 - 脚本：`python skills/appflowy-api/scripts/database_query.py ...`
@@ -120,6 +120,20 @@
 - 统一入口：`python skills/appflowy-api/scripts/appflowy_skill.py delete-db-field ...`
 - 默认 dry-run；实际删除必须传 `--execute --yes`。
 - 禁止删除主字段（primary field）。
+
+### `bulk-upsert-rows`
+- 脚本：`python skills/appflowy-api/scripts/bulk_upsert_rows.py ...`
+- 统一入口：`python skills/appflowy-api/scripts/appflowy_skill.py bulk-upsert-rows ...`
+- 输入：JSON 数组，或 `{ "rows": [...] }`，每项需包含 `cells` 和 `pre_hash`/`key`。
+- 输出：新增/更新/失败/跳过统计与行级结果。
+
+### 统一变更输出（M3）
+- 删除类和批量写入类命令会返回 `change_report`。
+- `change_report` 结构：
+  - `before`：执行前快照（例如 row_count_before）
+  - `plan`：计划变更（例如 planned_delete_count / planned rows）
+  - `after`：执行后快照（例如 row_count_after / row_count_diff）
+  - `summary`：统计摘要（例如 added_count / updated_count / failed_count）
 
 ## 错误处理
 - HTTP 200 但响应体包含 `success=false` 或 `error` 视为业务失败。

@@ -5,6 +5,7 @@ from pathlib import Path
 import doc_grid_lib as grid_lib
 from _common import build_client, print_json, resolve_token
 from appflowy_client import AppFlowyError
+from change_report import new_change_report, set_after, set_before, set_plan, set_summary
 
 
 def _split_csv(value: str) -> list[str]:
@@ -174,26 +175,46 @@ def main() -> int:
     )
     ref_summary = _collect_field_references(db_collab_json, set(target_ids))
 
+    target_payload = [
+        {
+            "id": field.get("id"),
+            "name": field.get("name"),
+            "field_type": field.get("field_type"),
+            "is_primary": bool(field.get("is_primary")),
+            "references": ref_summary.get(field.get("id"), {}).get("view_hits", []),
+        }
+        for field in targets
+    ]
     output = {
         "workspace_id": args.workspace_id,
         "database_id": args.database_id,
         "dry_run": dry_run,
-        "targets": [
-            {
-                "id": field.get("id"),
-                "name": field.get("name"),
-                "field_type": field.get("field_type"),
-                "is_primary": bool(field.get("is_primary")),
-                "references": ref_summary.get(field.get("id"), {}).get("view_hits", []),
-            }
-            for field in targets
-        ],
+        "targets": target_payload,
         "guardrails": {
             "primary_deletion_blocked": True,
             "execute_requires_yes": True,
         },
     }
+    report = new_change_report(
+        action="delete_db_field",
+        target_type="database",
+        target_id=args.database_id,
+        dry_run=dry_run,
+        input_data={
+            "workspace_id": args.workspace_id,
+            "database_id": args.database_id,
+            "field_ids": field_ids,
+            "field_names": field_names,
+            "execute": bool(args.execute),
+            "confirmed": bool(args.yes),
+        },
+    )
+    set_before(report, field_count_before=len(fields))
+    set_plan(report, target_fields=target_payload, planned_delete_count=len(target_ids))
+    set_summary(report, planned_delete_count=len(target_ids))
     if dry_run:
+        set_after(report, applied=False, field_count_after=len(fields))
+        output["change_report"] = report
         print_json(output)
         return 0
 
@@ -216,6 +237,20 @@ def main() -> int:
     output["deleted_field_ids"] = [field_id for field_id in target_ids if field_id not in latest_ids]
     output["still_present_field_ids"] = [field_id for field_id in target_ids if field_id in latest_ids]
     output["dry_run"] = False
+    set_after(
+        report,
+        applied=True,
+        field_count_after=len(latest_fields),
+        deleted_field_ids=output["deleted_field_ids"],
+        still_present_field_ids=output["still_present_field_ids"],
+    )
+    set_summary(
+        report,
+        planned_delete_count=len(target_ids),
+        deleted_count=len(output["deleted_field_ids"]),
+        still_present_count=len(output["still_present_field_ids"]),
+    )
+    output["change_report"] = report
     print_json(output)
     return 0
 

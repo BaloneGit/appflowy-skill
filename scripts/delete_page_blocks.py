@@ -5,6 +5,7 @@ from pathlib import Path
 import doc_grid_lib as grid_lib
 from _common import build_client, print_json, resolve_token
 from appflowy_client import AppFlowyError
+from change_report import new_change_report, set_after, set_before, set_plan, set_summary
 
 
 def _split_csv(value: str) -> list[str]:
@@ -144,7 +145,38 @@ def main() -> int:
         "delete_blocks": deleted_summaries,
         "dry_run": bool(args.dry_run),
     }
+    report = new_change_report(
+        action="delete_page_blocks",
+        target_type="page_view",
+        target_id=args.view_id,
+        dry_run=bool(args.dry_run),
+        input_data={
+            "workspace_id": args.workspace_id,
+            "requested_block_ids": requested_ids,
+            "ignore_missing": bool(args.ignore_missing),
+        },
+    )
+    set_before(
+        report,
+        block_count_before=len(blocks) if isinstance(blocks, dict) else 0,
+        matched_root_count=len(matched_roots),
+        missing_root_count=len(missing_roots),
+    )
+    set_plan(
+        report,
+        root_block_ids=matched_roots,
+        missing_block_ids=missing_roots,
+        planned_delete_count=len(delete_set),
+        planned_delete_block_ids=sorted(delete_set),
+    )
     if args.dry_run:
+        set_after(
+            report,
+            applied=False,
+            block_count_after=len(blocks) if isinstance(blocks, dict) else 0,
+        )
+        set_summary(report, planned_delete_count=len(delete_set), deleted_count=0)
+        output["change_report"] = report
         print_json(output)
         return 0
 
@@ -162,6 +194,18 @@ def main() -> int:
     )
 
     output["applied"] = True
+    latest_doc_json = grid_lib.fetch_collab_json(
+        client, token, args.workspace_id, args.view_id, grid_lib.DOC_COLLAB_TYPE
+    )
+    latest_doc = latest_doc_json.get("data", {}).get("collab", {}).get("document", {})
+    latest_blocks = latest_doc.get("blocks", {})
+    set_after(
+        report,
+        applied=True,
+        block_count_after=len(latest_blocks) if isinstance(latest_blocks, dict) else 0,
+    )
+    set_summary(report, planned_delete_count=len(delete_set), deleted_count=len(delete_set))
+    output["change_report"] = report
     print_json(output)
     return 0
 

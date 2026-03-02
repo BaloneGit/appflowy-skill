@@ -25,6 +25,7 @@ COMMANDS = {
     "add-db-field": "add_db_field.py",
     "rename-db-field": "rename_db_field.py",
     "delete-db-field": "delete_db_field.py",
+    "bulk-upsert-rows": "bulk_upsert_rows.py",
     "upsert-row": "upsert_row.py",
 }
 

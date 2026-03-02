@@ -75,7 +75,7 @@ def resolve_token(args, client: AppFlowyClient) -> str:
     raise AppFlowyError("Missing token or email/password for authentication")
 
 
-def load_json_payload(payload: Optional[str], payload_file: Optional[str]) -> Dict[str, Any]:
+def load_json_payload(payload: Optional[str], payload_file: Optional[str]) -> Any:
     if payload and payload_file:
         raise AppFlowyError("Provide only one of --payload or --payload-file")
     if payload_file:
@@ -84,6 +84,17 @@ def load_json_payload(payload: Optional[str], payload_file: Optional[str]) -> Di
     if payload:
         return json.loads(payload)
     raise AppFlowyError("Missing JSON payload")
+
+
+def load_text_lines(path: str) -> list[str]:
+    text = Path(path).read_text(encoding="utf-8-sig")
+    return [line.strip() for line in text.splitlines() if line.strip()]
+
+
+def require_json_object(payload: Any, *, name: str = "payload") -> Dict[str, Any]:
+    if not isinstance(payload, dict):
+        raise AppFlowyError(f"{name} must be a JSON object")
+    return payload
 
 
 def print_json(data: Any) -> None:
