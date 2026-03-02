@@ -39,6 +39,45 @@ function ensureYMap(value) {
   return { map, created: true };
 }
 
+function applyDocState(doc, docState) {
+  const update = Uint8Array.from(docState);
+  try {
+    Y.applyUpdate(doc, update);
+    return "v1";
+  } catch (v1Err) {
+    if (typeof Y.applyUpdateV2 !== "function") {
+      throw v1Err;
+    }
+    Y.applyUpdateV2(doc, update);
+    return "v2";
+  }
+}
+
+function encodeDocUpdate(doc, stateVector, versionHint) {
+  const hasStateVector = Array.isArray(stateVector);
+  const vector = hasStateVector ? Uint8Array.from(stateVector) : undefined;
+
+  if (versionHint === "v2" && typeof Y.encodeStateAsUpdateV2 === "function") {
+    if (vector) {
+      try {
+        return Y.encodeStateAsUpdateV2(doc, vector);
+      } catch (err) {
+        // fall through to full-update encoding
+      }
+    }
+    return Y.encodeStateAsUpdateV2(doc);
+  }
+
+  if (vector) {
+    try {
+      return Y.encodeStateAsUpdate(doc, vector);
+    } catch (err) {
+      // fall through to full-update encoding
+    }
+  }
+  return Y.encodeStateAsUpdate(doc);
+}
+
 const input = readStdin();
 const docState = input.doc_state;
 const stateVector = input.state_vector;
@@ -49,7 +88,7 @@ if (!Array.isArray(docState) || !Array.isArray(fieldUpdates)) {
 }
 
 const doc = new Y.Doc();
-Y.applyUpdate(doc, Uint8Array.from(docState));
+const updateVersion = applyDocState(doc, docState);
 
 const dataRoot = doc.getMap("data");
 const database = getMapValue(dataRoot, "database");
@@ -86,8 +125,6 @@ for (const update of fieldUpdates) {
   setMapValue(typeData, "content", content);
 }
 
-const update = Array.isArray(stateVector)
-  ? Y.encodeStateAsUpdate(doc, Uint8Array.from(stateVector))
-  : Y.encodeStateAsUpdate(doc);
+const update = encodeDocUpdate(doc, stateVector, updateVersion);
 const output = { update: Array.from(update) };
 process.stdout.write(JSON.stringify(output));

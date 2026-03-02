@@ -409,7 +409,9 @@ def is_empty_value(value: object) -> bool:
     if isinstance(value, (int, float)):
         return False
     if isinstance(value, list):
-        return len(value) == 0
+        if len(value) == 0:
+            return True
+        return all(is_empty_value(item) for item in value)
     if isinstance(value, dict):
         if not value:
             return True
@@ -447,9 +449,6 @@ def cleanup_default_rows(
 
     row_details = get_row_details(client, token, workspace_id, database_id, row_ids)
     ignore_fields = {
-        "创建时间",
-        "最后编辑时间",
-        "人员",
         "Done",
         "Created time",
         "Last edited time",
@@ -457,6 +456,22 @@ def cleanup_default_rows(
         "Last Edited Time",
         "Assignee",
     }
+    fields_resp = get_database_fields(client, token, workspace_id, database_id)
+    fields = fields_resp.get("data", []) if isinstance(fields_resp, dict) else []
+    system_field_types = {
+        "CreatedTime",
+        "LastEditedTime",
+        "CreatedBy",
+        "LastEditedBy",
+        "Person",
+    }
+    for field in fields:
+        if not isinstance(field, dict):
+            continue
+        name = field.get("name")
+        field_type = field.get("field_type")
+        if name and isinstance(field_type, str) and field_type in system_field_types:
+            ignore_fields.add(name)
     empty_ids = []
     for row in row_details:
         row_id = row.get("id") if isinstance(row, dict) else None
@@ -482,6 +497,76 @@ def build_select_content(options: list[dict], disable_color: bool = False) -> st
     return json.dumps(payload, ensure_ascii=False)
 
 
+def _field_type_to_select_key(field_type: object) -> str | None:
+    if isinstance(field_type, int):
+        if field_type == 3:
+            return "3"
+        if field_type == 4:
+            return "4"
+        return None
+    if isinstance(field_type, str):
+        normalized = field_type.strip()
+        if normalized == "SingleSelect":
+            return "3"
+        if normalized == "MultiSelect":
+            return "4"
+        if normalized in {"3", "4"}:
+            return normalized
+    return None
+
+
+def _parse_select_content(value: object) -> dict:
+    if isinstance(value, str):
+        try:
+            value = json.loads(value)
+        except json.JSONDecodeError:
+            return {}
+    if isinstance(value, dict):
+        if "options" in value:
+            return {
+                "options": value.get("options") or [],
+                "disable_color": bool(value.get("disable_color", False)),
+            }
+        if "content" in value:
+            return _parse_select_content(value.get("content"))
+    return {}
+
+
+def _extract_select_content_from_type_option(type_option: object, type_key: str) -> dict:
+    if not isinstance(type_option, dict):
+        return {}
+    candidates = []
+    if "content" in type_option:
+        candidates.append(type_option.get("content"))
+    typed = type_option.get(type_key)
+    if isinstance(typed, dict):
+        candidates.append(typed.get("content"))
+        candidates.append(typed)
+    candidates.append(type_option)
+    for candidate in candidates:
+        parsed = _parse_select_content(candidate)
+        if parsed.get("options"):
+            return parsed
+    return {}
+
+
+def _normalize_options(options: object) -> list[dict]:
+    if not isinstance(options, list):
+        return []
+    normalized = []
+    for option in options:
+        if not isinstance(option, dict):
+            continue
+        normalized.append(
+            {
+                "id": option.get("id", ""),
+                "name": option.get("name", ""),
+                "color": option.get("color"),
+            }
+        )
+    return normalized
+
+
 def repair_select_field_options(
     client,
     token: str,
@@ -495,27 +580,17 @@ def repair_select_field_options(
     desired_by_name = {}
     for field in select_fields:
         name = field.get("name")
-        options = field.get("options")
+        options = _normalize_options(field.get("options"))
         if name and options:
+            disable_color = bool(field.get("disable_color", False))
             desired_by_name[name] = {
-                "content": build_select_content(options, field.get("disable_color", False))
+                "content": build_select_content(options, disable_color),
+                "options": options,
+                "disable_color": disable_color,
             }
 
     fields_resp = get_database_fields(client, token, workspace_id, database_id)
     fields = fields_resp.get("data", []) if isinstance(fields_resp, dict) else []
-
-    def extract_options(content: object) -> list[dict]:
-        if isinstance(content, str):
-            try:
-                data = json.loads(content)
-            except json.JSONDecodeError:
-                return []
-            if isinstance(data, dict):
-                return data.get("options") or []
-            return []
-        if isinstance(content, dict):
-            return content.get("options") or []
-        return []
 
     updates = []
     for field in fields:
@@ -523,22 +598,16 @@ def repair_select_field_options(
         field_type = field.get("field_type")
         if not name or name not in desired_by_name:
             continue
-        if field_type not in ("SingleSelect", "MultiSelect"):
+        type_key = _field_type_to_select_key(field_type)
+        if not type_key:
             continue
-        type_key = "3" if field_type == "SingleSelect" else "4"
         type_option = field.get("type_option") or {}
-        content = type_option.get("content") or {}
-        options = extract_options(content)
-        if not options:
-            updates.append(
-                {
-                    "field_id": field.get("id"),
-                    "type_key": type_key,
-                    "content": desired_by_name[name]["content"],
-                }
-            )
-            continue
-        if any(isinstance(opt.get("color"), int) for opt in options if isinstance(opt, dict)):
+        current = _extract_select_content_from_type_option(type_option, type_key)
+        current_options = _normalize_options(current.get("options"))
+        desired_options = desired_by_name[name]["options"]
+        current_disable_color = bool(current.get("disable_color", False))
+        desired_disable_color = desired_by_name[name]["disable_color"]
+        if current_options != desired_options or current_disable_color != desired_disable_color:
             updates.append(
                 {
                     "field_id": field.get("id"),

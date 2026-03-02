@@ -25,6 +25,7 @@
 - `POST /api/workspace/{workspace_id}/database/{database_id}/row`
 - `PUT /api/workspace/{workspace_id}/database/{database_id}/row`
 - `GET /api/workspace/{workspace_id}/database/{database_id}/row/detail?ids=...`
+- `DELETE /api/workspace/{workspace_id}/database/{database_id}/row`：**不支持（通常返回 405）**
 
 ### 搜索
 - `GET /api/search/{workspace_id}?query=...`
@@ -71,10 +72,15 @@
   "pre_hash": "example:row-key",
   "cells": {
     "Name": "示例",
-    "状态": { "name": "未开始" }
+    "状态": "未开始",
+    "标签": ["核心", "风险"]
   }
 }
 ```
+
+### Select 字段写入约定（重要）
+- `SingleSelect`/`MultiSelect` 用**选项名称**写入（字符串/字符串数组）。
+- 不要把 `selected_option_ids` 直接传给这两类字段的 row API；该结构常用于 `Checklist` 字段。
 
 ## 错误处理
 - HTTP 200 但响应体包含 `success=false` 或 `error` 视为业务失败。
@@ -84,3 +90,4 @@
 ## 说明
 - 模板文件与脚本输出请使用 UTF-8，避免中文乱码。
 - Grid 默认可能生成 3 条空行，建议在写入真实数据前清理。
+- 删除行建议使用技能脚本 `python skills/appflowy-api/scripts/delete_rows.py ...`（通过 collab 更新 row_orders）。

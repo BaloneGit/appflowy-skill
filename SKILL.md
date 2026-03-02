@@ -72,6 +72,11 @@ python skills/appflowy-api/scripts/update_user_management_doc.py --config skills
 python skills/appflowy-api/scripts/apply_grid_template.py --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --view-id <view_id> --template-file <template.json>
 ```
 
+```bash
+# 删除行（通过 collab 从 row_orders 移除，支持多个 row_id）
+python skills/appflowy-api/scripts/delete_rows.py --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --database-id <database_id> --row-ids <row_id_1,row_id_2>
+```
+
 ## 子内容规则（子任务 / 子项 / 子 Grid）
 1. `子任务`（Checklist/Todo 列）：适用于**简单描述**的子内容，不需要额外字段。
 2. `子项`（Relation 列）：当子内容与父级**字段结构一致**时，通过关联行管理。
@@ -79,6 +84,11 @@ python skills/appflowy-api/scripts/apply_grid_template.py --config skills/appflo
 
 ## Grid 默认空行处理
 新建 Grid 时可能自动生成 3 条空行。脚本在写入数据前会清理默认空行，避免空行混入真实计划。
+
+## Select 写入规则（重要）
+1. `SingleSelect`/`MultiSelect` 行值写入时应使用**选项名称**（例如：`"状态": "进行中"`、`"标签": ["核心", "风险"]`）。
+2. 不要把 `selected_option_ids` 直接作为 `SingleSelect`/`MultiSelect` 行值提交给 REST row API，否则容易触发 `HTTP 400`。
+3. `selected_option_ids` 仅适用于 `Checklist`（子任务）字段结构。
 
 ## 必需请求头
 所有 AppFlowy API 请求均需携带：
@@ -91,6 +101,7 @@ python skills/appflowy-api/scripts/apply_grid_template.py --config skills/appflo
 1. HTTP 200 但响应体包含 `success=false` 或 `error` 视为业务失败。
 2. 控制台提示无法连接时，优先检查宿主机 `80/443` 可达性与防火墙规则。
 3. 容器间调用优先使用内部地址（如 `http://gotrue:9999`、`http://appflowy_cloud:8000`）。
+4. 删除行时，`/database/{database_id}/row` 没有 `DELETE` 路由；应使用 `delete_rows.py` 通过 collab 更新 `row_orders` 完成删除。
 
 ## 资源
 1. `skills/appflowy-api/scripts/`：Python/Node 脚本与通用库。

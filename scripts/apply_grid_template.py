@@ -12,6 +12,149 @@ def load_template(path_or_payload: str | None, payload_file: str | None) -> dict
     raise AppFlowyError("Missing template payload. Use --template or --template-file.")
 
 
+def field_type_to_select_key(field_type: object) -> str | None:
+    if isinstance(field_type, int):
+        if field_type == 3:
+            return "3"
+        if field_type == 4:
+            return "4"
+        return None
+    if isinstance(field_type, str):
+        normalized = field_type.strip()
+        if normalized == "SingleSelect":
+            return "3"
+        if normalized == "MultiSelect":
+            return "4"
+        if normalized in {"3", "4"}:
+            return normalized
+    return None
+
+
+def parse_select_content(value: object) -> dict:
+    if isinstance(value, str):
+        try:
+            value = json.loads(value)
+        except json.JSONDecodeError:
+            return {}
+    if isinstance(value, dict):
+        if "options" in value:
+            return {
+                "options": value.get("options") or [],
+                "disable_color": bool(value.get("disable_color", False)),
+            }
+        if "content" in value:
+            return parse_select_content(value.get("content"))
+    return {}
+
+
+def normalize_select_type_option_data(type_option_data: object) -> dict | None:
+    if not isinstance(type_option_data, dict):
+        return None
+    parsed = parse_select_content(type_option_data)
+    if parsed.get("options"):
+        return {"content": json.dumps(parsed, ensure_ascii=False)}
+    if isinstance(type_option_data.get("content"), dict):
+        return {
+            **type_option_data,
+            "content": json.dumps(type_option_data["content"], ensure_ascii=False),
+        }
+    if isinstance(type_option_data.get("options"), list):
+        payload = {
+            "options": type_option_data.get("options") or [],
+            "disable_color": bool(type_option_data.get("disable_color", False)),
+        }
+        return {"content": json.dumps(payload, ensure_ascii=False)}
+    return dict(type_option_data)
+
+
+def extract_select_payload(type_option_data: object) -> dict:
+    if not isinstance(type_option_data, dict):
+        return {}
+    parsed = parse_select_content(type_option_data)
+    if parsed.get("options"):
+        return parsed
+    return {}
+
+
+def build_select_field_updates(fields: list[dict]) -> list[dict]:
+    select_fields = []
+    for field in fields:
+        type_key = field_type_to_select_key(field.get("field_type"))
+        if not type_key:
+            continue
+        data = extract_select_payload(field.get("type_option_data"))
+        options = data.get("options") or []
+        if options:
+            select_fields.append(
+                {
+                    "name": field.get("name"),
+                    "options": options,
+                    "disable_color": bool(data.get("disable_color", False)),
+                }
+            )
+    return select_fields
+
+
+def build_select_value_lookup(fields_resp: dict) -> dict:
+    fields = fields_resp.get("data", []) if isinstance(fields_resp, dict) else []
+    by_name = {}
+    for field in fields:
+        if not isinstance(field, dict):
+            continue
+        name = field.get("name")
+        type_key = field_type_to_select_key(field.get("field_type"))
+        if not name or not type_key:
+            continue
+        type_option = field.get("type_option") or {}
+        content = None
+        if isinstance(type_option, dict):
+            if isinstance(type_option.get("content"), (dict, str)):
+                content = type_option.get("content")
+            typed = type_option.get(type_key)
+            if content is None and isinstance(typed, dict):
+                content = typed.get("content")
+        parsed = parse_select_content(content)
+        options = parsed.get("options") or []
+        id_to_name = {}
+        for option in options:
+            if isinstance(option, dict) and option.get("id") and option.get("name"):
+                id_to_name[option["id"]] = option["name"]
+        by_name[name] = {"type_key": type_key, "id_to_name": id_to_name}
+    return by_name
+
+
+def normalize_select_value(value: object, type_key: str, id_to_name: dict) -> object:
+    is_multi = type_key == "4"
+    if isinstance(value, dict):
+        selected_ids = value.get("selected_option_ids")
+        if isinstance(selected_ids, list):
+            names = [id_to_name.get(item) for item in selected_ids if item in id_to_name]
+            if is_multi:
+                return names
+            return names[0] if names else ""
+        if isinstance(value.get("id"), str):
+            name = id_to_name.get(value["id"])
+            if name is not None:
+                return [name] if is_multi else name
+        if isinstance(value.get("name"), str):
+            name = value["name"]
+            return [name] if is_multi else name
+    return value
+
+
+def normalize_row_cells_for_select_fields(cells: dict, select_lookup: dict) -> dict:
+    normalized = dict(cells)
+    for field_name, info in select_lookup.items():
+        if field_name not in normalized:
+            continue
+        normalized[field_name] = normalize_select_value(
+            normalized[field_name],
+            info.get("type_key"),
+            info.get("id_to_name") or {},
+        )
+    return normalized
+
+
 def ensure_fields_from_template(client, token, workspace_id: str, db_id: str, fields: list[dict]) -> None:
     existing = grid_lib.get_database_fields(client, token, workspace_id, db_id)
     field_list = existing.get("data", []) if isinstance(existing, dict) else []
@@ -23,7 +166,12 @@ def ensure_fields_from_template(client, token, workspace_id: str, db_id: str, fi
         if name in by_name and by_name[name].get("id"):
             continue
         payload = dict(field)
+        select_key = field_type_to_select_key(payload.get("field_type"))
         type_option_data = payload.get("type_option_data")
+        if select_key:
+            normalized_type_option_data = normalize_select_type_option_data(type_option_data)
+            if normalized_type_option_data is not None:
+                payload["type_option_data"] = normalized_type_option_data
         if (
             isinstance(type_option_data, dict)
             and type_option_data.get("database_id") == "<db_id_placeholder>"
@@ -102,7 +250,12 @@ def main() -> int:
     removed_default_rows = []
     if clean_default_rows:
         removed_default_rows = grid_lib.cleanup_default_rows(
-            client, token, args.workspace_id, db_id, max_remove=max_default_rows
+            client,
+            token,
+            args.workspace_id,
+            db_id,
+            max_remove=max_default_rows,
+            view_ids=[db_view_id] if db_view_id else None,
         )
 
     if args.clean_only:
@@ -119,40 +272,12 @@ def main() -> int:
 
     fields = template.get("fields") or []
     ensure_fields_from_template(client, token, args.workspace_id, db_id, fields)
-    select_fields = []
-    for field in fields:
-        if field.get("field_type") in (3, 4) and field.get("type_option_data"):
-            content = field.get("type_option_data", {}).get("content")
-            data = None
-            if isinstance(content, str):
-                try:
-                    data = json.loads(content)
-                except json.JSONDecodeError:
-                    data = None
-            elif isinstance(content, dict):
-                data = content
-            if isinstance(data, dict):
-                options = data.get("options") or []
-                if options:
-                    select_fields.append(
-                        {
-                            "name": field.get("name"),
-                            "options": options,
-                            "disable_color": data.get("disable_color", False),
-                        }
-                    )
-    status_field = next((item for item in select_fields if item.get("name") == "状态"), None)
-    if status_field and not any(item.get("name") == "Type" for item in select_fields):
-        select_fields.append(
-            {
-                "name": "Type",
-                "options": status_field.get("options") or [],
-                "disable_color": status_field.get("disable_color", False),
-            }
-        )
+    select_fields = build_select_field_updates(fields)
     grid_lib.repair_select_field_options(
         client, token, args.workspace_id, db_id, select_fields
     )
+    latest_fields = grid_lib.get_database_fields(client, token, args.workspace_id, db_id)
+    select_value_lookup = build_select_value_lookup(latest_fields)
 
     rows = template.get("rows") or []
     row_id_by_key: dict[str, str] = {}
@@ -162,6 +287,7 @@ def main() -> int:
         cells = row.get("cells") or {}
         if not key or not cells:
             continue
+        cells = normalize_row_cells_for_select_fields(cells, select_value_lookup)
         pre_hash = f"{grid_name}:{key}"
         row_id = grid_lib.upsert_database_row(
             client, token, args.workspace_id, db_id, pre_hash, cells

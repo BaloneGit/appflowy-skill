@@ -13,6 +13,8 @@ function asArray(value) {
   if (!value) return [];
   if (Array.isArray(value)) return value.slice();
   if (typeof value.toArray === "function") return value.toArray();
+  if (typeof value.values === "function") return Array.from(value.values());
+  if (typeof value[Symbol.iterator] === "function") return Array.from(value);
   return [];
 }
 
@@ -44,6 +46,55 @@ function listKeys(map) {
   return Object.keys(map);
 }
 
+function getRowId(row) {
+  if (!row) return undefined;
+  if (typeof row === "string") return row;
+  return (
+    getMapValue(row, "id") ??
+    getMapValue(row, "row_id") ??
+    getMapValue(row, "rowId")
+  );
+}
+
+function applyDocState(doc, docState) {
+  const update = Uint8Array.from(docState);
+  try {
+    Y.applyUpdate(doc, update);
+    return "v1";
+  } catch (v1Err) {
+    if (typeof Y.applyUpdateV2 !== "function") {
+      throw v1Err;
+    }
+    Y.applyUpdateV2(doc, update);
+    return "v2";
+  }
+}
+
+function encodeDocUpdate(doc, stateVector, versionHint) {
+  const hasStateVector = Array.isArray(stateVector);
+  const vector = hasStateVector ? Uint8Array.from(stateVector) : undefined;
+
+  if (versionHint === "v2" && typeof Y.encodeStateAsUpdateV2 === "function") {
+    if (vector) {
+      try {
+        return Y.encodeStateAsUpdateV2(doc, vector);
+      } catch (err) {
+        // fall through to full-update encoding
+      }
+    }
+    return Y.encodeStateAsUpdateV2(doc);
+  }
+
+  if (vector) {
+    try {
+      return Y.encodeStateAsUpdate(doc, vector);
+    } catch (err) {
+      // fall through to full-update encoding
+    }
+  }
+  return Y.encodeStateAsUpdate(doc);
+}
+
 const input = readStdin();
 const docState = input.doc_state;
 const stateVector = input.state_vector;
@@ -55,7 +106,7 @@ if (!Array.isArray(docState) || !Array.isArray(input.row_ids)) {
 }
 
 const doc = new Y.Doc();
-Y.applyUpdate(doc, Uint8Array.from(docState));
+const updateVersion = applyDocState(doc, docState);
 
 const dataRoot = doc.getMap("data");
 const database = getMapValue(dataRoot, "database");
@@ -78,7 +129,7 @@ for (const viewId of targetViewIds) {
   const rows = asArray(rowOrders);
   for (let i = rows.length - 1; i >= 0; i -= 1) {
     const row = rows[i];
-    const rowId = getMapValue(row, "id");
+    const rowId = getRowId(row);
     if (rowIds.has(rowId)) {
       deleteFromArray(rowOrders, i);
     }
@@ -86,8 +137,6 @@ for (const viewId of targetViewIds) {
   // row_orders 已在原地更新，无需重新 set
 }
 
-const update = Array.isArray(stateVector)
-  ? Y.encodeStateAsUpdate(doc, Uint8Array.from(stateVector))
-  : Y.encodeStateAsUpdate(doc);
+const update = encodeDocUpdate(doc, stateVector, updateVersion);
 const output = { update: Array.from(update) };
 process.stdout.write(JSON.stringify(output));

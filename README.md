@@ -34,4 +34,9 @@ python skills/appflowy-api/scripts/appflowy_skill.py doctor --config skills/appf
 
 # 应用 Grid 模板（就地修改）
 python skills/appflowy-api/scripts/appflowy_skill.py apply-grid --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --view-id <view_id> --template-file skills/appflowy-api/references/templates/fitness_plan.example.json
+
+# 删除行（通过 collab 更新 row_orders）
+python skills/appflowy-api/scripts/appflowy_skill.py delete-rows --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --database-id <database_id> --row-ids <row_id_1,row_id_2>
 ```
+
+> 约定：`SingleSelect`/`MultiSelect` 行值请使用选项名称，不要直接提交 `selected_option_ids`。

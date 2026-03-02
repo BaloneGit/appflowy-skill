@@ -13,6 +13,7 @@ COMMANDS = {
     "list-workspaces": "list_workspaces.py",
     "list-databases": "list_databases.py",
     "list-row-ids": "list_row_ids.py",
+    "delete-rows": "delete_rows.py",
     "get-row-detail": "get_row_detail.py",
     "search": "search.py",
     "create-page-view": "create_page_view.py",

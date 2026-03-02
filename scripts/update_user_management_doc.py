@@ -613,7 +613,12 @@ def main() -> int:
         )
 
     removed_default_rows = grid_lib.cleanup_default_rows(
-        client, token, args.workspace_id, db_id, max_remove=3
+        client,
+        token,
+        args.workspace_id,
+        db_id,
+        max_remove=3,
+        view_ids=[db_view_id] if db_view_id else None,
     )
 
     if args.clean_only:
