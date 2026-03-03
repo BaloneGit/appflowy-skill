@@ -354,9 +354,9 @@
 | 项目 | 状态 |
 | --- | --- |
 | 设计完成 | 已完成 |
-| 开发完成 | 进行中（M1-M3 已完成） |
-| 联调完成 | 进行中（M1-M3 已完成） |
-| 文档完成 | 进行中（M1-M3 已完成） |
+| 开发完成 | 进行中（M1-M4-04 已完成） |
+| 联调完成 | 进行中（M1-M4-04 已完成） |
+| 文档完成 | 进行中（M1-M4-04 已完成） |
 | 发布完成 | 未开始 |
 
 ### v0.3 可执行任务清单
@@ -376,7 +376,7 @@
 | M1 | 第 1 周 | schema diff 与 migration plan | 已完成 |
 | M2 | 第 2 周 | migration 执行与安全护栏 | 已完成 |
 | M3 | 第 3 周 | 模板参数化与修复框架化 | 已完成 |
-| M4 | 第 4 周 | snapshot/rollback、回归与发布 | 未开始 |
+| M4 | 第 4 周 | snapshot/rollback、回归与发布 | 进行中 |
 
 #### M1：schema diff 与 migration plan
 
@@ -412,10 +412,10 @@
 
 | 编号 | 任务 | 产出物 | 完成定义（DoD） | 依赖 | 状态 |
 | --- | --- | --- | --- | --- | --- |
-| v0.3-M4-01 | 设计 snapshot/rollback 协议 | 协议文档 | 明确对象粒度、存储格式、恢复流程 | M2 | 未开始 |
-| v0.3-M4-02 | 实现快照与回滚脚本 | `snapshot_collab.py` / `rollback_collab.py` | 关键迁移可创建快照并一键回滚 | v0.3-M4-01 | 未开始 |
-| v0.3-M4-03 | 执行 v0.3 真实回归 | 回归记录 | 覆盖 diff/plan/execute/template/rollback 全链路 | M1-M4 核心 | 未开始 |
-| v0.3-M4-04 | 更新文档与发布目录 | `SKILL.md`/`README.md`/`references/` | 源目录与 release 目录完全同步 | M1-M4 | 未开始 |
+| v0.3-M4-01 | 设计 snapshot/rollback 协议 | 协议文档 | 明确对象粒度、存储格式、恢复流程 | M2 | 已完成 |
+| v0.3-M4-02 | 实现快照与回滚脚本 | `snapshot_collab.py` / `rollback_collab.py` | 关键迁移可创建快照并一键回滚 | v0.3-M4-01 | 已完成 |
+| v0.3-M4-03 | 执行 v0.3 真实回归 | 回归记录 | 覆盖 diff/plan/execute/template/rollback 全链路 | M1-M4 核心 | 已完成 |
+| v0.3-M4-04 | 更新文档与发布目录 | `SKILL.md`/`README.md`/`references/` | 源目录与 release 目录完全同步 | M1-M4 | 已完成 |
 | v0.3-M4-05 | 版本发布 | commit / tag / VERSION | 形成 `v0.3.0` 可交付版本 | v0.3-M4-03, v0.3-M4-04 | 未开始 |
 
 #### 每周执行视图
@@ -425,7 +425,7 @@
 | 第 1 周 | M1-01 ~ M1-05 | schema diff 与 migration plan 可用 | 已完成 |
 | 第 2 周 | M2-01 ~ M2-05 | migration execute + 护栏可用 | 已完成 |
 | 第 3 周 | M3-01 ~ M3-05 | 模板参数化 + 修复框架 + 审计日志可用 | 已完成 |
-| 第 4 周 | M4-01 ~ M4-05 | 快照回滚、回归、发布完成 | 未开始 |
+| 第 4 周 | M4-01 ~ M4-05 | 快照回滚、回归、发布完成 | 进行中 |
 
 #### 任务验收清单
 
@@ -433,7 +433,7 @@
 - [x] 新增 `schema-migration-plan` 命令并接入统一入口
 - [x] 新增 `apply-schema-migration` 命令并接入统一入口
 - [x] 新增模板渲染能力与变量注入
-- [ ] 新增 snapshot/rollback 能力
+- [x] 新增 snapshot/rollback 能力
 - [x] 所有迁移类命令默认 dry-run 且输出 `change_report`
 - [x] 完成至少 1 套 v0.3 真实回归记录
 - [x] `release/appflowy-api-skill/` 已同步
@@ -599,3 +599,4 @@
 | 2026-03-03 | v0.3 M1 完成：新增 schema-diff/schema-migration-plan、接入 change_report、完成真实联调并补文档 | Codex |
 | 2026-03-03 | v0.3 M2 完成：新增 apply-schema-migration、补执行护栏与 before/after diff、完成真实联调与文档更新 | Codex |
 | 2026-03-03 | v0.3 M3 完成：新增 render-template/repair-runner、模板变量协议、统一 audit_log 与真实联调 | Codex |
+| 2026-03-03 | v0.3 M4 进行中：新增 snapshot-collab/rollback-collab、快照回滚协议、全链路回归与文档同步完成 | Codex |

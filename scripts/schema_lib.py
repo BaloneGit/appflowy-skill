@@ -403,9 +403,21 @@ def build_schema_diff(
             continue
         unmatched_target.extend(target_items)
 
+    rename_candidates = []
     type_changes = []
     select_option_changes = []
     for source_field, target_field in exact_pairs:
+        if source_field.name_key != target_field.name_key:
+            rename_candidates.append(
+                {
+                    "field_id": source_field.field_id,
+                    "from_name": source_field.name,
+                    "to_name": target_field.name,
+                    "field_type": source_field.field_type,
+                    "confidence": 1.0,
+                    "reason": "field_id_match",
+                }
+            )
         if source_field.field_type != target_field.field_type:
             type_changes.append(
                 {
@@ -433,7 +445,6 @@ def build_schema_diff(
                     }
                 )
 
-    rename_candidates = []
     used_source_idx: set[int] = set()
     for target_idx, target_field in enumerate(unmatched_target):
         best_idx = None

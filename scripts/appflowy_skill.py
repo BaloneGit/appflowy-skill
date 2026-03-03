@@ -19,6 +19,8 @@ COMMANDS = {
     "schema-diff": "schema_diff.py",
     "schema-migration-plan": "schema_migration_plan.py",
     "apply-schema-migration": "apply_schema_migration.py",
+    "snapshot-collab": "snapshot_collab.py",
+    "rollback-collab": "rollback_collab.py",
     "page-get-tree": "page_tree.py",
     "page-get-blocks": "page_blocks.py",
     "page-delete-blocks": "delete_page_blocks.py",

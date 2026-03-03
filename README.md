@@ -31,6 +31,8 @@ python skills/appflowy-api/scripts/appflowy_skill.py help schema-migration-plan
 python skills/appflowy-api/scripts/appflowy_skill.py help apply-schema-migration
 python skills/appflowy-api/scripts/appflowy_skill.py help render-template
 python skills/appflowy-api/scripts/appflowy_skill.py help repair-runner
+python skills/appflowy-api/scripts/appflowy_skill.py help snapshot-collab
+python skills/appflowy-api/scripts/appflowy_skill.py help rollback-collab
 ```
 
 ## 结构
@@ -99,6 +101,11 @@ python skills/appflowy-api/scripts/appflowy_skill.py render-template --template-
 # v0.3 M3：修复器框架（默认 dry-run）
 python skills/appflowy-api/scripts/appflowy_skill.py repair-runner --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --database-id <database_id> --template-file skills/appflowy-api/references/templates/fitness_plan.example.json
 python skills/appflowy-api/scripts/appflowy_skill.py repair-runner --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --database-id <database_id> --template-file .tmp/grid_plan.rendered.json --repair ensure-template-fields --repair repair-select-options --execute --yes
+
+# v0.3 M4：快照与回滚
+python skills/appflowy-api/scripts/appflowy_skill.py snapshot-collab --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --database-id <database_id>
+python skills/appflowy-api/scripts/appflowy_skill.py rollback-collab --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --snapshot-file .tmp/snapshots/<snapshot>.json
+python skills/appflowy-api/scripts/appflowy_skill.py rollback-collab --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --snapshot-file .tmp/snapshots/<snapshot>.json --execute --yes
 ```
 
 > 约定：`SingleSelect`/`MultiSelect` 行值请使用选项名称，不要直接提交 `selected_option_ids`。
@@ -117,4 +124,6 @@ python skills/appflowy-api/scripts/appflowy_skill.py repair-runner --config skil
 >
 > v0.3 M3 补充：`render-template` 与 `repair-runner` 会自动生成 `audit_log`，默认写入 `.tmp/audit_logs/`。
 >
-> 回归记录：`references/v0.2_m1_regression.md`、`references/v0.2_m2_regression.md`、`references/v0.2_m3_regression.md`、`references/v0.2_m4_regression.md`、`references/v0.3_m1_regression.md`、`references/v0.3_m2_regression.md`、`references/v0.3_m3_regression.md`。
+> v0.3 M4 补充：`snapshot-collab` 对 database 会额外保存 `database_schema_fields`，`rollback-collab` 在 auto 模式下优先使用 `schema-database` 策略回滚。
+>
+> 回归记录：`references/v0.2_m1_regression.md`、`references/v0.2_m2_regression.md`、`references/v0.2_m3_regression.md`、`references/v0.2_m4_regression.md`、`references/v0.3_m1_regression.md`、`references/v0.3_m2_regression.md`、`references/v0.3_m3_regression.md`、`references/v0.3_m4_regression.md`。

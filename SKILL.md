@@ -49,6 +49,8 @@ python skills/appflowy-api/scripts/appflowy_skill.py help schema-migration-plan
 python skills/appflowy-api/scripts/appflowy_skill.py help apply-schema-migration
 python skills/appflowy-api/scripts/appflowy_skill.py help render-template
 python skills/appflowy-api/scripts/appflowy_skill.py help repair-runner
+python skills/appflowy-api/scripts/appflowy_skill.py help snapshot-collab
+python skills/appflowy-api/scripts/appflowy_skill.py help rollback-collab
 ```
 
 ## 配置优先级
@@ -176,6 +178,13 @@ python skills/appflowy-api/scripts/repair_runner.py --config skills/appflowy-api
 python skills/appflowy-api/scripts/repair_runner.py --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --database-id <database_id> --template-file .tmp/grid_plan.rendered.json --repair ensure-template-fields --repair repair-select-options --execute --yes
 ```
 
+```bash
+# v0.3 M4：collab 快照与回滚
+python skills/appflowy-api/scripts/snapshot_collab.py --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --database-id <database_id>
+python skills/appflowy-api/scripts/rollback_collab.py --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --snapshot-file <snapshot.json>
+python skills/appflowy-api/scripts/rollback_collab.py --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --snapshot-file <snapshot.json> --execute --yes
+```
+
 ```json
 {
   "rows": [
@@ -227,6 +236,8 @@ python skills/appflowy-api/scripts/repair_runner.py --config skills/appflowy-api
 13. v0.3 M3 新增 `render-template`，支持 `--vars/--vars-file`、默认值与必填校验。
 14. v0.3 M3 新增 `repair-runner`，将空行清理 / 字段结构补齐 / select 选项修复抽象为可组合规则。
 15. `render-template` 与 `repair-runner` 执行后会生成 `audit_log`，默认输出到 `.tmp/audit_logs/`。
+16. v0.3 M4 新增 `snapshot-collab` 与 `rollback-collab`，支持 database/doc 对象快照与回滚。
+17. `rollback-collab` 默认 `auto` 策略：database 走 `schema-database`，其余对象走 `state-update`。
 
 ## 资源
 1. `skills/appflowy-api/scripts/`：Python/Node 脚本与通用库。
@@ -240,4 +251,6 @@ python skills/appflowy-api/scripts/repair_runner.py --config skills/appflowy-api
 9. `skills/appflowy-api/references/v0.3_m1_regression.md`：v0.3 M1 真实联调记录。
 10. `skills/appflowy-api/references/v0.3_m2_regression.md`：v0.3 M2 真实联调记录。
 11. `skills/appflowy-api/references/v0.3_m3_regression.md`：v0.3 M3 真实联调记录。
-12. `skills/appflowy-api/examples/`：示例命令与用法。
+12. `skills/appflowy-api/references/v0.3_m4_regression.md`：v0.3 M4 真实联调记录。
+13. `skills/appflowy-api/references/snapshot_rollback_protocol.md`：快照回滚协议。
+14. `skills/appflowy-api/examples/`：示例命令与用法。

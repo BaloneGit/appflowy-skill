@@ -261,6 +261,65 @@ python skills/appflowy-api/scripts/appflowy_skill.py repair-runner \
 ```
 - 现象：报 `require --template or --template-file`。
 
+## skill 命令补充（v0.3 M4）
+
+### `snapshot-collab`
+- 脚本：`python skills/appflowy-api/scripts/snapshot_collab.py ...`
+- 统一入口：`python skills/appflowy-api/scripts/appflowy_skill.py snapshot-collab ...`
+- 支持目标：
+  - `--database-id`（`collab_type=1`）
+  - `--view-id`（`collab_type=0`）
+  - `--object-id + --collab-kind`
+- 输出：
+  - `doc_state/state_vector`
+  - 校验哈希（sha256）
+  - database 快照默认附带 `database_schema_fields`
+- 每次执行输出 `change_report` + `audit_log`。
+
+### `rollback-collab`
+- 脚本：`python skills/appflowy-api/scripts/rollback_collab.py ...`
+- 统一入口：`python skills/appflowy-api/scripts/appflowy_skill.py rollback-collab ...`
+- 默认 dry-run，执行必须 `--execute --yes`。
+- 策略：
+  - `auto`：database 使用 `schema-database`，其他对象使用 `state-update`
+  - `schema-database`：基于 snapshot 的 `database_schema_fields` 执行结构回滚
+  - `state-update`：直接回放 snapshot `doc_state`
+- 默认要求快照目标与当前目标一致；不一致需 `--allow-target-mismatch`。
+
+### 正确样例
+```bash
+python skills/appflowy-api/scripts/appflowy_skill.py snapshot-collab \
+  --config skills/appflowy-api/references/config.example.json \
+  --email <email> --password <password> \
+  --workspace-id <workspace_id> --database-id <database_id>
+```
+
+```bash
+python skills/appflowy-api/scripts/appflowy_skill.py rollback-collab \
+  --config skills/appflowy-api/references/config.example.json \
+  --email <email> --password <password> \
+  --snapshot-file .tmp/snapshots/<snapshot>.json --execute --yes
+```
+
+### 失败样例
+- 未确认执行：
+```bash
+python skills/appflowy-api/scripts/appflowy_skill.py rollback-collab \
+  --config skills/appflowy-api/references/config.example.json \
+  --email <email> --password <password> \
+  --snapshot-file .tmp/snapshots/<snapshot>.json --execute
+```
+- 现象：报 `Rollback requires --yes when --execute is set`。
+
+- 快照目标与输入目标不一致：
+```bash
+python skills/appflowy-api/scripts/appflowy_skill.py rollback-collab \
+  --config skills/appflowy-api/references/config.example.json \
+  --email <email> --password <password> \
+  --snapshot-file .tmp/snapshots/<snapshot>.json --database-id <other_database_id>
+```
+- 现象：报 `Snapshot target mismatch`（除非显式 `--allow-target-mismatch`）。
+
 ## 错误处理
 - HTTP 200 但响应体包含 `success=false` 或 `error` 视为业务失败。
 - 控制台提示无法连接时，优先检查宿主机 `80/443` 端口与防火墙规则。
