@@ -253,4 +253,5 @@ python skills/appflowy-api/scripts/rollback_collab.py --config skills/appflowy-a
 11. `skills/appflowy-api/references/v0.3_m3_regression.md`：v0.3 M3 真实联调记录。
 12. `skills/appflowy-api/references/v0.3_m4_regression.md`：v0.3 M4 真实联调记录。
 13. `skills/appflowy-api/references/snapshot_rollback_protocol.md`：快照回滚协议。
-14. `skills/appflowy-api/examples/`：示例命令与用法。
+14. `skills/appflowy-api/references/v0.3_release_notes.md`：v0.3.0 发布说明。
+15. `skills/appflowy-api/examples/`：示例命令与用法。

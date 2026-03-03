@@ -2,6 +2,8 @@
 
 用于自托管 AppFlowy 的 API 调用与自动化：登录获取 token、文档/视图/数据库操作、搜索、协作数据更新等。
 
+当前发布版本：`0.3.0`（详见 `references/v0.3_release_notes.md`）
+
 ## 入口方式
 本技能提供两类入口：
 1. **单脚本入口**：直接运行某个脚本，如 `python scripts/doctor.py ...`  
@@ -39,6 +41,7 @@ python skills/appflowy-api/scripts/appflowy_skill.py help rollback-collab
 - `SKILL.md`：技能说明（供 Codex/Claude/OpenClaw 读取）
 - `scripts/`：可复用脚本与通用库
 - `references/`：API 参考与模板文件（UTF-8）
+- `references/v0.3_release_notes.md`：v0.3.0 发布说明
 - `APPFLOWY_SKILL_CAPABILITY_MATRIX_AND_ROADMAP.md`：能力矩阵与版本路线图（任务进度跟踪）
 - `examples/`：示例命令与用法
 
