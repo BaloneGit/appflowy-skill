@@ -32,6 +32,7 @@ python skills/appflowy-api/scripts/appflowy_skill.py help bulk-upsert-rows
 - `SKILL.md`：技能说明（供 Codex/Claude/OpenClaw 读取）
 - `scripts/`：可复用脚本与通用库
 - `references/`：API 参考与模板文件（UTF-8）
+- `APPFLOWY_SKILL_CAPABILITY_MATRIX_AND_ROADMAP.md`：能力矩阵与版本路线图（任务进度跟踪）
 - `examples/`：示例命令与用法
 
 ## 快速示例

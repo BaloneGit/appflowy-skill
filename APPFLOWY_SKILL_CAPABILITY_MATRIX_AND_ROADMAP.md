@@ -353,11 +353,100 @@
 
 | 项目 | 状态 |
 | --- | --- |
-| 设计完成 | 未开始 |
+| 设计完成 | 已完成 |
 | 开发完成 | 未开始 |
 | 联调完成 | 未开始 |
 | 文档完成 | 未开始 |
 | 发布完成 | 未开始 |
+
+### v0.3 可执行任务清单
+
+#### 任务拆分原则
+
+- 每个迁移能力都必须同时提供：`diff`、`plan`、`execute` 三段闭环
+- 所有迁移/删除类操作必须默认 `dry-run`，执行时显式确认
+- 每个命令都必须输出 `change_report`，至少包含 `before/plan/after/summary`
+- 每个里程碑都必须有真实环境回归记录与失败样例
+- 所有新增能力优先进入 `skills/appflowy-api/`，再同步到 `release/appflowy-api-skill/`
+
+#### 里程碑拆分
+
+| 里程碑 | 周期建议 | 目标 | 状态 |
+| --- | --- | --- | --- |
+| M1 | 第 1 周 | schema diff 与 migration plan | 未开始 |
+| M2 | 第 2 周 | migration 执行与安全护栏 | 未开始 |
+| M3 | 第 3 周 | 模板参数化与修复框架化 | 未开始 |
+| M4 | 第 4 周 | snapshot/rollback、回归与发布 | 未开始 |
+
+#### M1：schema diff 与 migration plan
+
+| 编号 | 任务 | 产出物 | 完成定义（DoD） | 依赖 | 状态 |
+| --- | --- | --- | --- | --- | --- |
+| v0.3-M1-01 | 设计 schema diff 数据模型 | `schema_diff` 规范 | 覆盖 add/rename/delete/type_change 四类差异 | 无 | 未开始 |
+| v0.3-M1-02 | 实现 `schema_diff.py` | 差异分析脚本 | 输入当前库+目标模板，输出结构化 diff JSON | v0.3-M1-01 | 未开始 |
+| v0.3-M1-03 | 实现 `schema_migration_plan.py` | 迁移计划脚本 | 基于 diff 输出可 review 的 plan（含风险级别） | v0.3-M1-02 | 未开始 |
+| v0.3-M1-04 | 接入统一入口 | `appflowy_skill.py` 子命令 | `help schema-diff` / `help schema-migration-plan` 可用 | v0.3-M1-02, v0.3-M1-03 | 未开始 |
+| v0.3-M1-05 | 输出规范接入 `change_report` | 公共输出一致化 | diff/plan 命令输出统一 `change_report` | v0.3-M1-02 | 未开始 |
+
+#### M2：migration 执行与安全护栏
+
+| 编号 | 任务 | 产出物 | 完成定义（DoD） | 依赖 | 状态 |
+| --- | --- | --- | --- | --- | --- |
+| v0.3-M2-01 | 设计 migration execute 协议 | `migration_execute` 规范 | 支持 `--plan-file`、`--dry-run`、`--execute --yes` | v0.3-M1-03 | 未开始 |
+| v0.3-M2-02 | 实现 `apply_schema_migration.py` | 迁移执行脚本 | 可按 plan 执行字段新增/改名/删除/部分类型迁移 | v0.3-M2-01 | 未开始 |
+| v0.3-M2-03 | 增加高风险护栏 | guardrail 规则 | 至少包含：主字段保护、破坏性变更二次确认、回滚点提示 | v0.3-M2-02 | 未开始 |
+| v0.3-M2-04 | 迁移前后 diff 复核 | 校验步骤 | 执行后自动生成 before/after schema diff | v0.3-M2-02 | 未开始 |
+| v0.3-M2-05 | 接入统一入口与示例 | CLI + 示例 | `help apply-schema-migration` 可用且有完整样例 | v0.3-M2-02 | 未开始 |
+
+#### M3：模板参数化与修复框架化
+
+| 编号 | 任务 | 产出物 | 完成定义（DoD） | 依赖 | 状态 |
+| --- | --- | --- | --- | --- | --- |
+| v0.3-M3-01 | 设计模板变量协议 | `template_vars` 规范 | 支持 `--vars` / `--vars-file` 与默认值/必填校验 | 无 | 未开始 |
+| v0.3-M3-02 | 实现模板渲染脚本 | `render_template.py` | 支持将模板渲染为可执行 JSON | v0.3-M3-01 | 未开始 |
+| v0.3-M3-03 | 修复器框架抽象 | `repair_runner.py` + 规则接口 | 现有修复逻辑可插件化接入（空行、select、结构清理） | M1-M2 核心可用 | 未开始 |
+| v0.3-M3-04 | 审计日志格式统一 | `audit_log` 规范 | 每次执行落地输入、结果、耗时、失败原因 | v0.3-M3-03 | 未开始 |
+| v0.3-M3-05 | 命令级文档与反例 | 参考文档 | 每个命令补“正确样例 + 失败样例 + 风险提示” | v0.3-M3-02, v0.3-M3-03 | 未开始 |
+
+#### M4：snapshot/rollback、回归与发布
+
+| 编号 | 任务 | 产出物 | 完成定义（DoD） | 依赖 | 状态 |
+| --- | --- | --- | --- | --- | --- |
+| v0.3-M4-01 | 设计 snapshot/rollback 协议 | 协议文档 | 明确对象粒度、存储格式、恢复流程 | M2 | 未开始 |
+| v0.3-M4-02 | 实现快照与回滚脚本 | `snapshot_collab.py` / `rollback_collab.py` | 关键迁移可创建快照并一键回滚 | v0.3-M4-01 | 未开始 |
+| v0.3-M4-03 | 执行 v0.3 真实回归 | 回归记录 | 覆盖 diff/plan/execute/template/rollback 全链路 | M1-M4 核心 | 未开始 |
+| v0.3-M4-04 | 更新文档与发布目录 | `SKILL.md`/`README.md`/`references/` | 源目录与 release 目录完全同步 | M1-M4 | 未开始 |
+| v0.3-M4-05 | 版本发布 | commit / tag / VERSION | 形成 `v0.3.0` 可交付版本 | v0.3-M4-03, v0.3-M4-04 | 未开始 |
+
+#### 每周执行视图
+
+| 周次 | 主要任务 | 目标结果 | 状态 |
+| --- | --- | --- | --- |
+| 第 1 周 | M1-01 ~ M1-05 | schema diff 与 migration plan 可用 | 未开始 |
+| 第 2 周 | M2-01 ~ M2-05 | migration execute + 护栏可用 | 未开始 |
+| 第 3 周 | M3-01 ~ M3-05 | 模板参数化 + 修复框架 + 审计日志可用 | 未开始 |
+| 第 4 周 | M4-01 ~ M4-05 | 快照回滚、回归、发布完成 | 未开始 |
+
+#### 任务验收清单
+
+- [ ] 新增 `schema-diff` 命令并接入统一入口
+- [ ] 新增 `schema-migration-plan` 命令并接入统一入口
+- [ ] 新增 `apply-schema-migration` 命令并接入统一入口
+- [ ] 新增模板渲染能力与变量注入
+- [ ] 新增 snapshot/rollback 能力
+- [ ] 所有迁移类命令默认 dry-run 且输出 `change_report`
+- [ ] 完成至少 1 套 v0.3 真实回归记录
+- [ ] `release/appflowy-api-skill/` 已同步
+
+#### 风险与阻塞项
+
+| 风险项 | 影响 | 应对策略 | 当前状态 |
+| --- | --- | --- | --- |
+| AppFlowy 字段类型迁移兼容性差异 | plan 与 execute 结果可能不一致 | 将类型迁移拆为安全子集，超出范围强制人工确认 | 已知 |
+| collab 数据结构在版本间变化 | 迁移/回滚脚本不稳定 | 保持 v1/v2 双兼容并做版本探测 | 已知 |
+| 回滚快照体积增长 | 存储与恢复成本上升 | 增加压缩与保留策略（TTL/数量上限） | 持续关注 |
+| 模板变量注入错误 | 可能写入脏数据 | 渲染前 schema 校验 + 必填变量校验 | 持续关注 |
+| 审计日志不完整 | 难以排障与追溯 | 强制关键命令记录输入摘要与执行结果 | 持续关注 |
 
 ## v0.4：增强内容编排与媒体能力
 
@@ -437,11 +526,11 @@
 
 ### 5.1 未来 2 周建议
 
-1. 先做 `database.query`
-2. 再做 `page.get-blocks`
-3. 然后做 `dry-run + diff`
-4. 补 `database.fields.rename/delete`
-5. 最后开始 schema diff
+1. 先做 `schema-diff`
+2. 再做 `schema-migration-plan`
+3. 然后做 `apply-schema-migration`（默认 dry-run）
+4. 补 `template vars` 与 `render-template`
+5. 最后补 `snapshot/rollback`
 
 ### 5.2 不建议优先做的内容
 
@@ -506,3 +595,4 @@
 | 2026-03-02 | 版本路线图更新：v0.2 设计状态改为已完成，M3 启动并将 M3-01 标记为进行中 | Codex |
 | 2026-03-02 | v0.2 M3 完成：新增 bulk-upsert-rows、统一 change_report 协议、删除类 dry-run 全覆盖并完成真实联调 | Codex |
 | 2026-03-03 | v0.2 M4 完成：回归清单与真实回归完成、文档与 release 同步、版本升级到 0.2.0 并发布标签 | Codex |
+| 2026-03-03 | 按 v0.2 标准完成 v0.3 任务规划：新增里程碑、任务表、验收清单、风险项与周执行视图 | Codex |
