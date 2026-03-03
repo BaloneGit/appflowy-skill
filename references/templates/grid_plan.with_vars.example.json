@@ -1,0 +1,64 @@
+{
+  "template_vars": {
+    "grid_heading": {
+      "type": "string",
+      "required": true,
+      "description": "文档中的 Grid 标题"
+    },
+    "grid_name": {
+      "type": "string",
+      "default": "任务看板",
+      "description": "数据库名称"
+    },
+    "max_default_rows": {
+      "type": "number",
+      "default": 3,
+      "description": "初始化后允许清理的默认空行上限"
+    },
+    "status_options": {
+      "type": "array",
+      "required": true,
+      "description": "状态字段选项列表"
+    },
+    "owner_label": {
+      "type": "string",
+      "default": "负责人",
+      "description": "负责人字段名"
+    }
+  },
+  "grid": {
+    "heading": "{{grid_heading}}",
+    "name": "{{grid_name}}"
+  },
+  "rules": {
+    "clean_default_rows": true,
+    "max_default_rows": "{{max_default_rows}}"
+  },
+  "fields": [
+    {
+      "name": "{{owner_label}}",
+      "field_type": 0
+    },
+    {
+      "name": "说明",
+      "field_type": 0
+    },
+    {
+      "name": "状态",
+      "field_type": 3,
+      "type_option_data": {
+        "options": "{{status_options}}"
+      }
+    }
+  ],
+  "rows": [
+    {
+      "key": "task-001",
+      "cells": {
+        "{{owner_label}}": "Alice",
+        "说明": "模板变量渲染验证",
+        "状态": "待处理"
+      }
+    }
+  ]
+}

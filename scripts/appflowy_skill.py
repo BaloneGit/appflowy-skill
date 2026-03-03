@@ -9,6 +9,8 @@ COMMANDS = {
     "create-user-management-doc": "create_user_management_doc.py",
     "update-user-management-doc": "update_user_management_doc.py",
     "apply-grid": "apply_grid_template.py",
+    "render-template": "render_template.py",
+    "repair-runner": "repair_runner.py",
     "update-page-name": "update_page_name.py",
     "list-workspaces": "list_workspaces.py",
     "list-databases": "list_databases.py",

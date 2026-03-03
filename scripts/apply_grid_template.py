@@ -2,13 +2,33 @@ import argparse
 import json
 
 import doc_grid_lib as grid_lib
-from _common import build_client, load_json_payload, print_json, resolve_token
+import template_ops_lib as template_ops
+import template_render_lib as render_lib
+from _common import build_client, print_json, resolve_token
 from appflowy_client import AppFlowyError
 
 
-def load_template(path_or_payload: str | None, payload_file: str | None) -> dict:
+def load_template(
+    path_or_payload: str | None,
+    payload_file: str | None,
+    vars_payload: str | None,
+    vars_file: str | None,
+) -> tuple[dict, dict]:
     if path_or_payload or payload_file:
-        return load_json_payload(path_or_payload, payload_file)
+        template = render_lib.load_template_payload(path_or_payload, payload_file)
+        provided_vars = render_lib.load_vars_payload(vars_payload, vars_file)
+        resolved_vars, var_meta = render_lib.resolve_template_vars(template, provided_vars)
+        rendered_template, render_stats = render_lib.render_template_with_vars(
+            template,
+            resolved_vars,
+            keep_template_vars=False,
+        )
+        rendered_template["__render_meta__"] = {
+            "resolved_vars": resolved_vars,
+            "var_meta": var_meta,
+            "render_stats": render_stats,
+        }
+        return rendered_template, resolved_vars
     raise AppFlowyError("Missing template payload. Use --template or --template-file.")
 
 
@@ -195,12 +215,19 @@ def main() -> int:
     parser.add_argument("--view-id", required=True)
     parser.add_argument("--template", default=None, help="Template JSON string")
     parser.add_argument("--template-file", default=None, help="Template JSON file")
+    parser.add_argument("--vars", default=None, help="Template vars JSON string.")
+    parser.add_argument("--vars-file", default=None, help="Template vars JSON file.")
     parser.add_argument("--clean-only", action="store_true", help="Only clean invalid blocks/rows.")
     args = parser.parse_args()
 
     client = build_client(args)
     token = resolve_token(args, client)
-    template = load_template(args.template, args.template_file)
+    template, resolved_vars = load_template(
+        args.template,
+        args.template_file,
+        args.vars,
+        args.vars_file,
+    )
 
     grid_cfg = template.get("grid", {})
     grid_heading = grid_cfg.get("heading") or "Grid"
@@ -271,13 +298,10 @@ def main() -> int:
         return 0
 
     fields = template.get("fields") or []
-    ensure_fields_from_template(client, token, args.workspace_id, db_id, fields)
-    select_fields = build_select_field_updates(fields)
-    grid_lib.repair_select_field_options(
-        client, token, args.workspace_id, db_id, select_fields
-    )
+    template_ops.ensure_fields_from_template(client, token, args.workspace_id, db_id, fields)
+    template_ops.repair_select_options_from_template(client, token, args.workspace_id, db_id, fields)
     latest_fields = grid_lib.get_database_fields(client, token, args.workspace_id, db_id)
-    select_value_lookup = build_select_value_lookup(latest_fields)
+    select_value_lookup = template_ops.build_select_value_lookup(latest_fields)
 
     rows = template.get("rows") or []
     row_id_by_key: dict[str, str] = {}
@@ -287,7 +311,7 @@ def main() -> int:
         cells = row.get("cells") or {}
         if not key or not cells:
             continue
-        cells = normalize_row_cells_for_select_fields(cells, select_value_lookup)
+        cells = template_ops.normalize_row_cells_for_select_fields(cells, select_value_lookup)
         pre_hash = f"{grid_name}:{key}"
         row_id = grid_lib.upsert_database_row(
             client, token, args.workspace_id, db_id, pre_hash, cells
@@ -324,6 +348,7 @@ def main() -> int:
             "grid_view_id": db_view_id,
             "default_rows_removed": removed_default_rows,
             "rows_upserted": len(row_ids),
+            "resolved_template_vars": resolved_vars,
         }
     )
     return 0

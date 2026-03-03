@@ -1,0 +1,23 @@
+{
+  "grid_heading": "M3 模板变量演示",
+  "grid_name": "M3_Template_Demo",
+  "max_default_rows": 3,
+  "owner_label": "负责人",
+  "status_options": [
+    {
+      "id": "status-todo",
+      "name": "待处理",
+      "color": "Purple"
+    },
+    {
+      "id": "status-doing",
+      "name": "进行中",
+      "color": "Blue"
+    },
+    {
+      "id": "status-done",
+      "name": "已完成",
+      "color": "Green"
+    }
+  ]
+}

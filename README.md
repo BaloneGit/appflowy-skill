@@ -29,6 +29,8 @@ python skills/appflowy-api/scripts/appflowy_skill.py help bulk-upsert-rows
 python skills/appflowy-api/scripts/appflowy_skill.py help schema-diff
 python skills/appflowy-api/scripts/appflowy_skill.py help schema-migration-plan
 python skills/appflowy-api/scripts/appflowy_skill.py help apply-schema-migration
+python skills/appflowy-api/scripts/appflowy_skill.py help render-template
+python skills/appflowy-api/scripts/appflowy_skill.py help repair-runner
 ```
 
 ## 结构
@@ -45,6 +47,7 @@ python skills/appflowy-api/scripts/appflowy_skill.py doctor --config skills/appf
 
 # 应用 Grid 模板（就地修改）
 python skills/appflowy-api/scripts/appflowy_skill.py apply-grid --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --view-id <view_id> --template-file skills/appflowy-api/references/templates/fitness_plan.example.json
+python skills/appflowy-api/scripts/appflowy_skill.py apply-grid --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --view-id <view_id> --template-file skills/appflowy-api/references/templates/grid_plan.with_vars.example.json --vars-file skills/appflowy-api/references/templates/grid_plan.vars.example.json
 
 # 删除行（通过 collab 更新 row_orders）
 python skills/appflowy-api/scripts/appflowy_skill.py delete-rows --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --database-id <database_id> --row-ids <row_id_1,row_id_2>
@@ -89,6 +92,13 @@ python skills/appflowy-api/scripts/appflowy_skill.py apply-schema-migration --co
 
 # v0.3 M2：执行 migration（高风险需显式放行）
 python skills/appflowy-api/scripts/appflowy_skill.py apply-schema-migration --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --database-id <database_id> --plan-file .tmp/migration_plan.json --execute --yes --allow-high-risk --allow-delete-fields
+
+# v0.3 M3：模板渲染（vars 注入）
+python skills/appflowy-api/scripts/appflowy_skill.py render-template --template-file skills/appflowy-api/references/templates/grid_plan.with_vars.example.json --vars-file skills/appflowy-api/references/templates/grid_plan.vars.example.json --output-file .tmp/grid_plan.rendered.json
+
+# v0.3 M3：修复器框架（默认 dry-run）
+python skills/appflowy-api/scripts/appflowy_skill.py repair-runner --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --database-id <database_id> --template-file skills/appflowy-api/references/templates/fitness_plan.example.json
+python skills/appflowy-api/scripts/appflowy_skill.py repair-runner --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --database-id <database_id> --template-file .tmp/grid_plan.rendered.json --repair ensure-template-fields --repair repair-select-options --execute --yes
 ```
 
 > 约定：`SingleSelect`/`MultiSelect` 行值请使用选项名称，不要直接提交 `selected_option_ids`。
@@ -105,4 +115,6 @@ python skills/appflowy-api/scripts/appflowy_skill.py apply-schema-migration --co
 >
 > 编码兼容：`--plan-file` 支持 UTF-8 / UTF-8 BOM / UTF-16（PowerShell `>` 重定向文件可直接读取）。
 >
-> 回归记录：`references/v0.2_m1_regression.md`、`references/v0.2_m2_regression.md`、`references/v0.2_m3_regression.md`、`references/v0.2_m4_regression.md`、`references/v0.3_m1_regression.md`、`references/v0.3_m2_regression.md`。
+> v0.3 M3 补充：`render-template` 与 `repair-runner` 会自动生成 `audit_log`，默认写入 `.tmp/audit_logs/`。
+>
+> 回归记录：`references/v0.2_m1_regression.md`、`references/v0.2_m2_regression.md`、`references/v0.2_m3_regression.md`、`references/v0.2_m4_regression.md`、`references/v0.3_m1_regression.md`、`references/v0.3_m2_regression.md`、`references/v0.3_m3_regression.md`。

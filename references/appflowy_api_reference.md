@@ -188,6 +188,79 @@
 - 若 plan 文件未包含 `target_schema`，会提示 `after_diff` 不可用。
 - `--plan-file` 支持 UTF-8 / UTF-8 BOM / UTF-16 编码。
 
+## skill 命令补充（v0.3 M3）
+
+### 模板变量协议（template_vars）
+- 在模板根节点新增 `template_vars`：
+  - key：变量名
+  - value：变量声明（支持 `required`/`default`/`type`/`description`）
+- 模板中以 `{{var_name}}` 使用变量。
+- 若变量占满整段字符串，支持渲染为非字符串类型（number/array/object）。
+- `apply-grid` 已支持 `--vars` / `--vars-file`，可直接消费参数化模板。
+
+### `render-template`
+- 脚本：`python skills/appflowy-api/scripts/render_template.py ...`
+- 统一入口：`python skills/appflowy-api/scripts/appflowy_skill.py render-template ...`
+- 支持：
+  - `--vars` / `--vars-file`
+  - 默认值注入与必填校验
+  - 类型校验（`string/number/boolean/array/object`）
+  - 输出到 `--output-file`
+- 每次执行会落地 `audit_log`（默认 `.tmp/audit_logs/`）。
+
+### `repair-runner`
+- 脚本：`python skills/appflowy-api/scripts/repair_runner.py ...`
+- 统一入口：`python skills/appflowy-api/scripts/appflowy_skill.py repair-runner ...`
+- 规则接口（可组合）：
+  - `cleanup-default-rows`：清理默认空行
+  - `ensure-template-fields`：补齐模板缺失字段（结构修复）
+  - `repair-select-options`：修复 select 字段选项
+- 默认 `dry-run`；执行需 `--execute --yes`。
+- 每次执行会落地 `audit_log`（默认 `.tmp/audit_logs/`）。
+
+### 正确样例
+```bash
+python skills/appflowy-api/scripts/appflowy_skill.py render-template \
+  --template-file skills/appflowy-api/references/templates/grid_plan.with_vars.example.json \
+  --vars-file skills/appflowy-api/references/templates/grid_plan.vars.example.json \
+  --output-file .tmp/grid_plan.rendered.json
+```
+
+```bash
+python skills/appflowy-api/scripts/appflowy_skill.py repair-runner \
+  --config skills/appflowy-api/references/config.example.json \
+  --email <email> --password <password> \
+  --workspace-id <workspace_id> --database-id <database_id> \
+  --template-file .tmp/grid_plan.rendered.json \
+  --repair ensure-template-fields --repair repair-select-options --execute --yes
+```
+
+### 失败样例
+- 缺少必填变量：
+```bash
+python skills/appflowy-api/scripts/appflowy_skill.py render-template \
+  --template-file skills/appflowy-api/references/templates/grid_plan.with_vars.example.json
+```
+- 现象：报 `Missing required template vars`。
+
+- 变量类型不匹配（例如 `status_options` 应为 array）：
+```bash
+python skills/appflowy-api/scripts/appflowy_skill.py render-template \
+  --template-file skills/appflowy-api/references/templates/grid_plan.with_vars.example.json \
+  --vars '{"status_options":"not-array"}'
+```
+- 现象：报 `Template var type mismatch`。
+
+- 未传模板却调用模板修复规则：
+```bash
+python skills/appflowy-api/scripts/appflowy_skill.py repair-runner \
+  --config skills/appflowy-api/references/config.example.json \
+  --email <email> --password <password> \
+  --workspace-id <workspace_id> --database-id <database_id> \
+  --repair ensure-template-fields
+```
+- 现象：报 `require --template or --template-file`。
+
 ## 错误处理
 - HTTP 200 但响应体包含 `success=false` 或 `error` 视为业务失败。
 - 控制台提示无法连接时，优先检查宿主机 `80/443` 端口与防火墙规则。
