@@ -44,6 +44,8 @@ python skills/appflowy-api/scripts/appflowy_skill.py help page-delete-blocks
 python skills/appflowy-api/scripts/appflowy_skill.py help rename-db-field
 python skills/appflowy-api/scripts/appflowy_skill.py help delete-db-field
 python skills/appflowy-api/scripts/appflowy_skill.py help bulk-upsert-rows
+python skills/appflowy-api/scripts/appflowy_skill.py help schema-diff
+python skills/appflowy-api/scripts/appflowy_skill.py help schema-migration-plan
 ```
 
 ## 配置优先级
@@ -136,6 +138,18 @@ python skills/appflowy-api/scripts/bulk_upsert_rows.py --config skills/appflowy-
 python skills/appflowy-api/scripts/bulk_upsert_rows.py --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --database-id <database_id> --rows-file <rows.json> --pre-hash-prefix <prefix>
 ```
 
+```bash
+# v0.3 M1：schema diff（当前库 vs 目标模板/目标库）
+python skills/appflowy-api/scripts/schema_diff.py --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --database-id <database_id> --target-template-file skills/appflowy-api/references/templates/fitness_plan.example.json
+python skills/appflowy-api/scripts/schema_diff.py --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --database-id <database_id> --target-database-id <target_database_id>
+```
+
+```bash
+# v0.3 M1：migration plan（仅生成计划，不执行）
+python skills/appflowy-api/scripts/schema_migration_plan.py --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --database-id <database_id> --target-template-file skills/appflowy-api/references/templates/fitness_plan.example.json
+python skills/appflowy-api/scripts/schema_migration_plan.py --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --database-id <database_id> --target-database-id <target_database_id> --rename-apply-threshold 0.80
+```
+
 ```json
 {
   "rows": [
@@ -179,6 +193,8 @@ python skills/appflowy-api/scripts/bulk_upsert_rows.py --config skills/appflowy-
 5. `database-query` 的 `--query-file` 支持 UTF-8/UTF-8 BOM（Windows PowerShell 导出的 UTF-8 也可读取）。
 6. 字段改名/字段删除当前通过 collab 更新实现；其中字段删除默认 dry-run，执行必须显式传入 `--execute --yes`。
 7. M3 统一输出协议：高风险/批量命令返回 `change_report`（`before/plan/after/summary` 四段）。
+8. v0.3 M1 新增 `schema-diff` 与 `schema-migration-plan`，两者均输出 `change_report`。
+9. `schema-diff` 中的 `rename_candidates` 是“建议项”，后续执行仍应优先以 `field_id` 二次确认。
 
 ## 资源
 1. `skills/appflowy-api/scripts/`：Python/Node 脚本与通用库。
@@ -189,4 +205,5 @@ python skills/appflowy-api/scripts/bulk_upsert_rows.py --config skills/appflowy-
 6. `skills/appflowy-api/references/v0.2_m3_regression.md`：v0.2 M3 真实联调记录。
 7. `skills/appflowy-api/references/v0.2_regression_suite.md`：v0.2 回归脚本清单。
 8. `skills/appflowy-api/references/v0.2_m4_regression.md`：v0.2 M4 真实回归记录。
-9. `skills/appflowy-api/examples/`：示例命令与用法。
+9. `skills/appflowy-api/references/v0.3_m1_regression.md`：v0.3 M1 真实联调记录。
+10. `skills/appflowy-api/examples/`：示例命令与用法。

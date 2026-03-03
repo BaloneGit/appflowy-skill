@@ -135,6 +135,31 @@
   - `after`：执行后快照（例如 row_count_after / row_count_diff）
   - `summary`：统计摘要（例如 added_count / updated_count / failed_count）
 
+## skill 命令补充（v0.3 M1）
+
+### `schema-diff`
+- 脚本：`python skills/appflowy-api/scripts/schema_diff.py ...`
+- 统一入口：`python skills/appflowy-api/scripts/appflowy_skill.py schema-diff ...`
+- 输入：当前库 + 目标模板（`--target-template-file`）或目标库（`--target-database-id`）。
+- 输出分段：`add_fields` / `delete_fields` / `rename_candidates` / `type_changes` / `select_option_changes`。
+- 默认过滤系统字段（`CreatedTime`/`LastEditedTime`/`CreatedBy`/`LastEditedBy`），可用 `--include-system-fields` 打开。
+- `rename_candidates` 是建议项，不直接作为执行依据；后续执行应优先使用 `field_id` 再确认。
+
+### `schema-migration-plan`
+- 脚本：`python skills/appflowy-api/scripts/schema_migration_plan.py ...`
+- 统一入口：`python skills/appflowy-api/scripts/appflowy_skill.py schema-migration-plan ...`
+- 基于 schema diff 输出 `operations`、`op_counts`、`risk_counts`、`blocked_operations`。
+- 风险模型：
+  - `add_field`：`low`
+  - `rename_field`：按置信度 `medium/high`
+  - `delete_field`：`high`
+  - `change_field_type`：`high`，默认不可自动执行
+- 默认不执行任何写操作，仅用于评审迁移计划。
+
+### v0.3 M1 输出约定
+- `schema-diff` 与 `schema-migration-plan` 均输出 `change_report`，结构为 `before/plan/after/summary`。
+- 对于主字段删除、类型迁移等高风险操作，plan 会标记 `auto_executable=false` 并进入 `blocked_operations`。
+
 ## 错误处理
 - HTTP 200 但响应体包含 `success=false` 或 `error` 视为业务失败。
 - 控制台提示无法连接时，优先检查宿主机 `80/443` 端口与防火墙规则。

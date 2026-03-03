@@ -26,6 +26,8 @@ python skills/appflowy-api/scripts/appflowy_skill.py help page-delete-blocks
 python skills/appflowy-api/scripts/appflowy_skill.py help rename-db-field
 python skills/appflowy-api/scripts/appflowy_skill.py help delete-db-field
 python skills/appflowy-api/scripts/appflowy_skill.py help bulk-upsert-rows
+python skills/appflowy-api/scripts/appflowy_skill.py help schema-diff
+python skills/appflowy-api/scripts/appflowy_skill.py help schema-migration-plan
 ```
 
 ## 结构
@@ -71,6 +73,14 @@ python skills/appflowy-api/scripts/appflowy_skill.py delete-db-field --config sk
 # 批量 upsert 行（输出新增/更新/失败摘要）
 python skills/appflowy-api/scripts/appflowy_skill.py bulk-upsert-rows --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --database-id <database_id> --rows-file .tmp/rows.json --pre-hash-prefix biz --dry-run
 python skills/appflowy-api/scripts/appflowy_skill.py bulk-upsert-rows --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --database-id <database_id> --rows-file .tmp/rows.json --pre-hash-prefix biz
+
+# v0.3 M1：schema diff（仅分析差异）
+python skills/appflowy-api/scripts/appflowy_skill.py schema-diff --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --database-id <database_id> --target-template-file skills/appflowy-api/references/templates/fitness_plan.example.json
+python skills/appflowy-api/scripts/appflowy_skill.py schema-diff --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --database-id <database_id> --target-database-id <target_database_id>
+
+# v0.3 M1：migration plan（仅输出计划，不执行）
+python skills/appflowy-api/scripts/appflowy_skill.py schema-migration-plan --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --database-id <database_id> --target-template-file skills/appflowy-api/references/templates/fitness_plan.example.json
+python skills/appflowy-api/scripts/appflowy_skill.py schema-migration-plan --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --database-id <database_id> --target-database-id <target_database_id> --rename-apply-threshold 0.80
 ```
 
 > 约定：`SingleSelect`/`MultiSelect` 行值请使用选项名称，不要直接提交 `selected_option_ids`。
@@ -81,4 +91,6 @@ python skills/appflowy-api/scripts/appflowy_skill.py bulk-upsert-rows --config s
 >
 > 统一输出：M3 起删除类/批量命令会返回 `change_report`，包含 `before`/`plan`/`after`/`summary` 四段。
 >
-> 回归记录：`references/v0.2_m1_regression.md`、`references/v0.2_m2_regression.md`、`references/v0.2_m3_regression.md`、`references/v0.2_m4_regression.md`。
+> v0.3 补充：`schema-diff` 与 `schema-migration-plan` 也输出 `change_report`，其中 `rename_candidates` 仅为建议，不直接作为执行依据。
+>
+> 回归记录：`references/v0.2_m1_regression.md`、`references/v0.2_m2_regression.md`、`references/v0.2_m3_regression.md`、`references/v0.2_m4_regression.md`、`references/v0.3_m1_regression.md`。

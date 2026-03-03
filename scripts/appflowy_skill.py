@@ -14,6 +14,8 @@ COMMANDS = {
     "list-databases": "list_databases.py",
     "list-row-ids": "list_row_ids.py",
     "database-query": "database_query.py",
+    "schema-diff": "schema_diff.py",
+    "schema-migration-plan": "schema_migration_plan.py",
     "page-get-tree": "page_tree.py",
     "page-get-blocks": "page_blocks.py",
     "page-delete-blocks": "delete_page_blocks.py",

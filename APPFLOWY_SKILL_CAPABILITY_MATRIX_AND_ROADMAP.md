@@ -354,9 +354,9 @@
 | 项目 | 状态 |
 | --- | --- |
 | 设计完成 | 已完成 |
-| 开发完成 | 未开始 |
-| 联调完成 | 未开始 |
-| 文档完成 | 未开始 |
+| 开发完成 | 进行中（M1 已完成） |
+| 联调完成 | 进行中（M1 已完成） |
+| 文档完成 | 进行中（M1 已完成） |
 | 发布完成 | 未开始 |
 
 ### v0.3 可执行任务清单
@@ -373,7 +373,7 @@
 
 | 里程碑 | 周期建议 | 目标 | 状态 |
 | --- | --- | --- | --- |
-| M1 | 第 1 周 | schema diff 与 migration plan | 未开始 |
+| M1 | 第 1 周 | schema diff 与 migration plan | 已完成 |
 | M2 | 第 2 周 | migration 执行与安全护栏 | 未开始 |
 | M3 | 第 3 周 | 模板参数化与修复框架化 | 未开始 |
 | M4 | 第 4 周 | snapshot/rollback、回归与发布 | 未开始 |
@@ -382,11 +382,11 @@
 
 | 编号 | 任务 | 产出物 | 完成定义（DoD） | 依赖 | 状态 |
 | --- | --- | --- | --- | --- | --- |
-| v0.3-M1-01 | 设计 schema diff 数据模型 | `schema_diff` 规范 | 覆盖 add/rename/delete/type_change 四类差异 | 无 | 未开始 |
-| v0.3-M1-02 | 实现 `schema_diff.py` | 差异分析脚本 | 输入当前库+目标模板，输出结构化 diff JSON | v0.3-M1-01 | 未开始 |
-| v0.3-M1-03 | 实现 `schema_migration_plan.py` | 迁移计划脚本 | 基于 diff 输出可 review 的 plan（含风险级别） | v0.3-M1-02 | 未开始 |
-| v0.3-M1-04 | 接入统一入口 | `appflowy_skill.py` 子命令 | `help schema-diff` / `help schema-migration-plan` 可用 | v0.3-M1-02, v0.3-M1-03 | 未开始 |
-| v0.3-M1-05 | 输出规范接入 `change_report` | 公共输出一致化 | diff/plan 命令输出统一 `change_report` | v0.3-M1-02 | 未开始 |
+| v0.3-M1-01 | 设计 schema diff 数据模型 | `schema_diff` 规范 | 覆盖 add/rename/delete/type_change 四类差异 | 无 | 已完成 |
+| v0.3-M1-02 | 实现 `schema_diff.py` | 差异分析脚本 | 输入当前库+目标模板，输出结构化 diff JSON | v0.3-M1-01 | 已完成 |
+| v0.3-M1-03 | 实现 `schema_migration_plan.py` | 迁移计划脚本 | 基于 diff 输出可 review 的 plan（含风险级别） | v0.3-M1-02 | 已完成 |
+| v0.3-M1-04 | 接入统一入口 | `appflowy_skill.py` 子命令 | `help schema-diff` / `help schema-migration-plan` 可用 | v0.3-M1-02, v0.3-M1-03 | 已完成 |
+| v0.3-M1-05 | 输出规范接入 `change_report` | 公共输出一致化 | diff/plan 命令输出统一 `change_report` | v0.3-M1-02 | 已完成 |
 
 #### M2：migration 执行与安全护栏
 
@@ -422,20 +422,20 @@
 
 | 周次 | 主要任务 | 目标结果 | 状态 |
 | --- | --- | --- | --- |
-| 第 1 周 | M1-01 ~ M1-05 | schema diff 与 migration plan 可用 | 未开始 |
+| 第 1 周 | M1-01 ~ M1-05 | schema diff 与 migration plan 可用 | 已完成 |
 | 第 2 周 | M2-01 ~ M2-05 | migration execute + 护栏可用 | 未开始 |
 | 第 3 周 | M3-01 ~ M3-05 | 模板参数化 + 修复框架 + 审计日志可用 | 未开始 |
 | 第 4 周 | M4-01 ~ M4-05 | 快照回滚、回归、发布完成 | 未开始 |
 
 #### 任务验收清单
 
-- [ ] 新增 `schema-diff` 命令并接入统一入口
-- [ ] 新增 `schema-migration-plan` 命令并接入统一入口
+- [x] 新增 `schema-diff` 命令并接入统一入口
+- [x] 新增 `schema-migration-plan` 命令并接入统一入口
 - [ ] 新增 `apply-schema-migration` 命令并接入统一入口
 - [ ] 新增模板渲染能力与变量注入
 - [ ] 新增 snapshot/rollback 能力
 - [ ] 所有迁移类命令默认 dry-run 且输出 `change_report`
-- [ ] 完成至少 1 套 v0.3 真实回归记录
+- [x] 完成至少 1 套 v0.3 真实回归记录
 - [ ] `release/appflowy-api-skill/` 已同步
 
 #### 风险与阻塞项
@@ -596,3 +596,4 @@
 | 2026-03-02 | v0.2 M3 完成：新增 bulk-upsert-rows、统一 change_report 协议、删除类 dry-run 全覆盖并完成真实联调 | Codex |
 | 2026-03-03 | v0.2 M4 完成：回归清单与真实回归完成、文档与 release 同步、版本升级到 0.2.0 并发布标签 | Codex |
 | 2026-03-03 | 按 v0.2 标准完成 v0.3 任务规划：新增里程碑、任务表、验收清单、风险项与周执行视图 | Codex |
+| 2026-03-03 | v0.3 M1 完成：新增 schema-diff/schema-migration-plan、接入 change_report、完成真实联调并补文档 | Codex |
