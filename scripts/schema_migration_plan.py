@@ -193,6 +193,10 @@ def main() -> int:
             "workspace_id": args.workspace_id,
             "database_id": args.database_id,
             "target": target_meta,
+            "target_schema": {
+                "field_count": len(target_fields),
+                "fields": [item.to_public() for item in target_fields],
+            },
             "ignored_system_fields": ignored_system_fields,
             "ignored_target_system_fields": ignored_target_system_fields,
             "diff": diff_result,
@@ -205,7 +209,12 @@ def main() -> int:
                 "requires_confirmation": bool(plan.get("requires_confirmation")),
                 "execute_guardrail": {
                     "default_mode": "dry-run",
-                    "recommended_flags": ["--execute", "--yes"],
+                    "recommended_flags": [
+                        "--execute",
+                        "--yes",
+                        "--allow-high-risk",
+                        "--allow-delete-fields",
+                    ],
                 },
             },
             "change_report": report,

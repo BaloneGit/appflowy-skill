@@ -28,6 +28,7 @@ python skills/appflowy-api/scripts/appflowy_skill.py help delete-db-field
 python skills/appflowy-api/scripts/appflowy_skill.py help bulk-upsert-rows
 python skills/appflowy-api/scripts/appflowy_skill.py help schema-diff
 python skills/appflowy-api/scripts/appflowy_skill.py help schema-migration-plan
+python skills/appflowy-api/scripts/appflowy_skill.py help apply-schema-migration
 ```
 
 ## 结构
@@ -81,6 +82,13 @@ python skills/appflowy-api/scripts/appflowy_skill.py schema-diff --config skills
 # v0.3 M1：migration plan（仅输出计划，不执行）
 python skills/appflowy-api/scripts/appflowy_skill.py schema-migration-plan --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --database-id <database_id> --target-template-file skills/appflowy-api/references/templates/fitness_plan.example.json
 python skills/appflowy-api/scripts/appflowy_skill.py schema-migration-plan --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --database-id <database_id> --target-database-id <target_database_id> --rename-apply-threshold 0.80
+
+# v0.3 M2：应用 migration（默认 dry-run）
+python skills/appflowy-api/scripts/appflowy_skill.py apply-schema-migration --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --database-id <database_id> --target-template-file skills/appflowy-api/references/templates/fitness_plan.example.json
+python skills/appflowy-api/scripts/appflowy_skill.py apply-schema-migration --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --database-id <database_id> --plan-file .tmp/migration_plan.json
+
+# v0.3 M2：执行 migration（高风险需显式放行）
+python skills/appflowy-api/scripts/appflowy_skill.py apply-schema-migration --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --database-id <database_id> --plan-file .tmp/migration_plan.json --execute --yes --allow-high-risk --allow-delete-fields
 ```
 
 > 约定：`SingleSelect`/`MultiSelect` 行值请使用选项名称，不要直接提交 `selected_option_ids`。
@@ -93,4 +101,8 @@ python skills/appflowy-api/scripts/appflowy_skill.py schema-migration-plan --con
 >
 > v0.3 补充：`schema-diff` 与 `schema-migration-plan` 也输出 `change_report`，其中 `rename_candidates` 仅为建议，不直接作为执行依据。
 >
-> 回归记录：`references/v0.2_m1_regression.md`、`references/v0.2_m2_regression.md`、`references/v0.2_m3_regression.md`、`references/v0.2_m4_regression.md`、`references/v0.3_m1_regression.md`。
+> v0.3 M2 补充：`apply-schema-migration` 默认 `dry-run`；执行必须 `--execute --yes`。高风险操作需额外传 `--allow-high-risk`，删除字段还需 `--allow-delete-fields`。
+>
+> 编码兼容：`--plan-file` 支持 UTF-8 / UTF-8 BOM / UTF-16（PowerShell `>` 重定向文件可直接读取）。
+>
+> 回归记录：`references/v0.2_m1_regression.md`、`references/v0.2_m2_regression.md`、`references/v0.2_m3_regression.md`、`references/v0.2_m4_regression.md`、`references/v0.3_m1_regression.md`、`references/v0.3_m2_regression.md`。

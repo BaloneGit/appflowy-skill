@@ -160,6 +160,34 @@
 - `schema-diff` 与 `schema-migration-plan` 均输出 `change_report`，结构为 `before/plan/after/summary`。
 - 对于主字段删除、类型迁移等高风险操作，plan 会标记 `auto_executable=false` 并进入 `blocked_operations`。
 
+## skill 命令补充（v0.3 M2）
+
+### `apply-schema-migration`
+- 脚本：`python skills/appflowy-api/scripts/apply_schema_migration.py ...`
+- 统一入口：`python skills/appflowy-api/scripts/appflowy_skill.py apply-schema-migration ...`
+- 输入模式：
+  - 直接模式：`--target-database-id` 或 `--target-template-file`（现场生成 diff+plan）。
+  - 计划模式：`--plan-file`（读取已审阅 plan 执行）。
+- 默认 `dry-run`。执行必须显式传：`--execute --yes`。
+
+### 执行护栏（guardrails）
+- 高风险操作（如 `delete_field`）执行时要求：`--allow-high-risk`。
+- 字段删除操作额外要求：`--allow-delete-fields`。
+- 主字段删除仍被阻断（blocked）。
+- 默认提示“先做快照再执行”，当前版本不自动回滚。
+
+### 执行覆盖范围（v0.3 M2）
+- 支持执行：`add_field` / `rename_field` / `delete_field` / `update_select_options`。
+- 暂不自动执行：`change_field_type`（保持 manual review）。
+- 对 `Relation` 新增字段：若 `database_id` 未解析（例如 `<db_id_placeholder>`），会要求人工处理。
+
+### before/after diff 复核
+- `apply-schema-migration` 会输出执行前后的 diff 摘要：
+  - `before_diff`：执行前与目标 schema 差异
+  - `after_diff`：执行后与目标 schema 差异
+- 若 plan 文件未包含 `target_schema`，会提示 `after_diff` 不可用。
+- `--plan-file` 支持 UTF-8 / UTF-8 BOM / UTF-16 编码。
+
 ## 错误处理
 - HTTP 200 但响应体包含 `success=false` 或 `error` 视为业务失败。
 - 控制台提示无法连接时，优先检查宿主机 `80/443` 端口与防火墙规则。

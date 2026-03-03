@@ -46,6 +46,7 @@ python skills/appflowy-api/scripts/appflowy_skill.py help delete-db-field
 python skills/appflowy-api/scripts/appflowy_skill.py help bulk-upsert-rows
 python skills/appflowy-api/scripts/appflowy_skill.py help schema-diff
 python skills/appflowy-api/scripts/appflowy_skill.py help schema-migration-plan
+python skills/appflowy-api/scripts/appflowy_skill.py help apply-schema-migration
 ```
 
 ## 配置优先级
@@ -150,6 +151,17 @@ python skills/appflowy-api/scripts/schema_migration_plan.py --config skills/appf
 python skills/appflowy-api/scripts/schema_migration_plan.py --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --database-id <database_id> --target-database-id <target_database_id> --rename-apply-threshold 0.80
 ```
 
+```bash
+# v0.3 M2：apply schema migration（默认 dry-run）
+python skills/appflowy-api/scripts/apply_schema_migration.py --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --database-id <database_id> --target-template-file skills/appflowy-api/references/templates/fitness_plan.example.json
+python skills/appflowy-api/scripts/apply_schema_migration.py --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --database-id <database_id> --plan-file <migration_plan.json>
+```
+
+```bash
+# v0.3 M2：执行 migration（高风险需显式放行）
+python skills/appflowy-api/scripts/apply_schema_migration.py --config skills/appflowy-api/references/config.example.json --email <email> --password <password> --workspace-id <workspace_id> --database-id <database_id> --plan-file <migration_plan.json> --execute --yes --allow-high-risk --allow-delete-fields
+```
+
 ```json
 {
   "rows": [
@@ -195,6 +207,9 @@ python skills/appflowy-api/scripts/schema_migration_plan.py --config skills/appf
 7. M3 统一输出协议：高风险/批量命令返回 `change_report`（`before/plan/after/summary` 四段）。
 8. v0.3 M1 新增 `schema-diff` 与 `schema-migration-plan`，两者均输出 `change_report`。
 9. `schema-diff` 中的 `rename_candidates` 是“建议项”，后续执行仍应优先以 `field_id` 二次确认。
+10. v0.3 M2 新增 `apply-schema-migration`，默认 dry-run；执行需要 `--execute --yes`，并对高风险操作要求额外确认参数。
+11. `apply-schema-migration` 在执行前后自动输出 before/after diff 摘要；若 plan 文件缺少 target schema，会提示 after diff 不可用。
+12. `apply-schema-migration` 的 `--plan-file` 支持 UTF-8 / UTF-8 BOM / UTF-16 编码，兼容 PowerShell 重定向文件。
 
 ## 资源
 1. `skills/appflowy-api/scripts/`：Python/Node 脚本与通用库。
@@ -206,4 +221,5 @@ python skills/appflowy-api/scripts/schema_migration_plan.py --config skills/appf
 7. `skills/appflowy-api/references/v0.2_regression_suite.md`：v0.2 回归脚本清单。
 8. `skills/appflowy-api/references/v0.2_m4_regression.md`：v0.2 M4 真实回归记录。
 9. `skills/appflowy-api/references/v0.3_m1_regression.md`：v0.3 M1 真实联调记录。
-10. `skills/appflowy-api/examples/`：示例命令与用法。
+10. `skills/appflowy-api/references/v0.3_m2_regression.md`：v0.3 M2 真实联调记录。
+11. `skills/appflowy-api/examples/`：示例命令与用法。

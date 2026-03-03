@@ -21,6 +21,7 @@ FIELD_TYPE_INT_TO_NAME = {
     9: "CreatedTime",
     10: "Relation",
 }
+FIELD_TYPE_NAME_TO_INT = {name: key for key, name in FIELD_TYPE_INT_TO_NAME.items()}
 
 
 @dataclass
@@ -32,16 +33,29 @@ class NormalizedField:
     is_primary: bool
     field_id: str | None = None
     select_options: list[str] | None = None
+    select_options_detail: list[dict[str, Any]] | None = None
+    select_disable_color: bool | None = None
+    type_option_data: dict[str, Any] | None = None
+    target_payload: dict[str, Any] | None = None
 
     def to_public(self) -> dict[str, Any]:
         data = {
             "id": self.field_id,
             "name": self.name,
             "field_type": self.field_type,
+            "field_type_raw": self.field_type_raw,
             "is_primary": self.is_primary,
         }
         if self.select_options is not None:
             data["select_options"] = self.select_options
+        if self.select_options_detail is not None:
+            data["select_options_detail"] = self.select_options_detail
+        if self.select_disable_color is not None:
+            data["select_disable_color"] = self.select_disable_color
+        if self.type_option_data is not None:
+            data["type_option_data"] = self.type_option_data
+        if self.target_payload is not None:
+            data["target_payload"] = self.target_payload
         return data
 
 
@@ -74,26 +88,65 @@ def _parse_select_content(value: Any) -> dict[str, Any]:
     return {}
 
 
-def _normalize_option_names(options: Any) -> list[str]:
+def _normalize_option_details(options: Any) -> list[dict[str, Any]]:
     if not isinstance(options, list):
         return []
-    names: list[str] = []
+    normalized: list[dict[str, Any]] = []
     for item in options:
         if not isinstance(item, dict):
             continue
         name = item.get("name")
         if isinstance(name, str) and name.strip():
-            names.append(name.strip())
-    return sorted(names)
+            normalized.append(
+                {
+                    "id": str(item.get("id") or ""),
+                    "name": name.strip(),
+                    "color": item.get("color"),
+                }
+            )
+    return sorted(normalized, key=lambda it: (str(it.get("name") or "").lower(), str(it.get("id") or "")))
 
 
-def _extract_select_options_from_current(type_option: Any) -> list[str]:
+def _extract_option_names(option_details: list[dict[str, Any]]) -> list[str]:
+    return sorted(
+        [str(item.get("name")).strip() for item in option_details if str(item.get("name") or "").strip()]
+    )
+
+
+def _normalize_select_type_option_data(type_option_data: Any) -> dict[str, Any] | None:
+    if not isinstance(type_option_data, dict):
+        return None
+    parsed = _parse_select_content(type_option_data)
+    if parsed.get("options"):
+        payload = {
+            "options": parsed.get("options") or [],
+            "disable_color": bool(parsed.get("disable_color", False)),
+        }
+        return {"content": json.dumps(payload, ensure_ascii=False)}
+    if isinstance(type_option_data.get("content"), dict):
+        return {
+            **type_option_data,
+            "content": json.dumps(type_option_data["content"], ensure_ascii=False),
+        }
+    if isinstance(type_option_data.get("options"), list):
+        payload = {
+            "options": type_option_data.get("options") or [],
+            "disable_color": bool(type_option_data.get("disable_color", False)),
+        }
+        return {"content": json.dumps(payload, ensure_ascii=False)}
+    return dict(type_option_data)
+
+
+def _extract_select_info_from_current(
+    type_option: Any,
+) -> tuple[list[str], list[dict[str, Any]], bool]:
     if not isinstance(type_option, dict):
-        return []
+        return [], [], False
 
     parsed = _parse_select_content(type_option)
     if parsed.get("options"):
-        return _normalize_option_names(parsed.get("options"))
+        details = _normalize_option_details(parsed.get("options"))
+        return _extract_option_names(details), details, bool(parsed.get("disable_color", False))
 
     for key, value in type_option.items():
         if key == "content":
@@ -101,17 +154,56 @@ def _extract_select_options_from_current(type_option: Any) -> list[str]:
         if isinstance(value, dict):
             parsed = _parse_select_content(value)
             if parsed.get("options"):
-                return _normalize_option_names(parsed.get("options"))
-    return []
+                details = _normalize_option_details(parsed.get("options"))
+                return _extract_option_names(details), details, bool(parsed.get("disable_color", False))
+    return [], [], False
 
 
-def _extract_select_options_from_target(type_option_data: Any) -> list[str]:
+def _extract_select_info_from_target(
+    type_option_data: Any,
+) -> tuple[list[str], list[dict[str, Any]], bool]:
     if not isinstance(type_option_data, dict):
-        return []
+        return [], [], False
     parsed = _parse_select_content(type_option_data)
     if parsed.get("options"):
-        return _normalize_option_names(parsed.get("options"))
-    return []
+        details = _normalize_option_details(parsed.get("options"))
+        return _extract_option_names(details), details, bool(parsed.get("disable_color", False))
+    return [], [], False
+
+
+def _build_target_payload_from_template_field(field: dict[str, Any]) -> dict[str, Any]:
+    payload = {
+        "name": field.get("name"),
+        "field_type": field.get("field_type"),
+    }
+    if "type_option_data" in field:
+        normalized = _normalize_select_type_option_data(field.get("type_option_data"))
+        payload["type_option_data"] = normalized if normalized is not None else field.get("type_option_data")
+    return payload
+
+
+def _build_target_payload_from_database_field(field: dict[str, Any]) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "name": field.get("name"),
+        "field_type": field.get("field_type"),
+    }
+    field_type_name = normalize_field_type(field.get("field_type"))
+    if field_type_name in {"SingleSelect", "MultiSelect"}:
+        _, details, disable_color = _extract_select_info_from_current(field.get("type_option"))
+        if details:
+            payload["type_option_data"] = {
+                "content": json.dumps(
+                    {"options": details, "disable_color": bool(disable_color)},
+                    ensure_ascii=False,
+                )
+            }
+    elif field_type_name == "Relation":
+        type_option = field.get("type_option")
+        if isinstance(type_option, dict):
+            rel_database_id = type_option.get("database_id")
+            if rel_database_id:
+                payload["type_option_data"] = {"database_id": rel_database_id}
+    return payload
 
 
 def normalize_current_field(field: dict[str, Any]) -> NormalizedField:
@@ -120,8 +212,12 @@ def normalize_current_field(field: dict[str, Any]) -> NormalizedField:
         raise AppFlowyError(f"Invalid field without name: {field}")
     field_type = normalize_field_type(field.get("field_type"))
     select_options = None
+    select_options_detail = None
+    select_disable_color = None
     if field_type in {"SingleSelect", "MultiSelect"}:
-        select_options = _extract_select_options_from_current(field.get("type_option"))
+        select_options, select_options_detail, select_disable_color = _extract_select_info_from_current(
+            field.get("type_option")
+        )
     return NormalizedField(
         name=name,
         name_key=name.lower(),
@@ -130,6 +226,8 @@ def normalize_current_field(field: dict[str, Any]) -> NormalizedField:
         is_primary=bool(field.get("is_primary")),
         field_id=field.get("id"),
         select_options=select_options,
+        select_options_detail=select_options_detail,
+        select_disable_color=select_disable_color,
     )
 
 
@@ -139,8 +237,14 @@ def normalize_target_field(field: dict[str, Any]) -> NormalizedField:
         raise AppFlowyError(f"Invalid target field without name: {field}")
     field_type = normalize_field_type(field.get("field_type"))
     select_options = None
+    select_options_detail = None
+    select_disable_color = None
+    type_option_data = None
     if field_type in {"SingleSelect", "MultiSelect"}:
-        select_options = _extract_select_options_from_target(field.get("type_option_data"))
+        type_option_data = _normalize_select_type_option_data(field.get("type_option_data"))
+        select_options, select_options_detail, select_disable_color = _extract_select_info_from_target(
+            type_option_data or field.get("type_option_data")
+        )
     return NormalizedField(
         name=name,
         name_key=name.lower(),
@@ -149,6 +253,53 @@ def normalize_target_field(field: dict[str, Any]) -> NormalizedField:
         is_primary=bool(field.get("is_primary", False)),
         field_id=field.get("id"),
         select_options=select_options,
+        select_options_detail=select_options_detail,
+        select_disable_color=select_disable_color,
+        type_option_data=type_option_data,
+        target_payload=_build_target_payload_from_template_field(field),
+    )
+
+
+def normalize_target_field_from_database(field: dict[str, Any]) -> NormalizedField:
+    name = str(field.get("name") or "").strip()
+    if not name:
+        raise AppFlowyError(f"Invalid target field without name: {field}")
+    field_type = normalize_field_type(field.get("field_type"))
+    select_options = None
+    select_options_detail = None
+    select_disable_color = None
+    type_option_data = None
+    if field_type in {"SingleSelect", "MultiSelect"}:
+        select_options, select_options_detail, select_disable_color = _extract_select_info_from_current(
+            field.get("type_option")
+        )
+        if select_options_detail:
+            type_option_data = {
+                "content": json.dumps(
+                    {
+                        "options": select_options_detail,
+                        "disable_color": bool(select_disable_color),
+                    },
+                    ensure_ascii=False,
+                )
+            }
+    elif field_type == "Relation":
+        type_option = field.get("type_option")
+        if isinstance(type_option, dict) and type_option.get("database_id"):
+            type_option_data = {"database_id": type_option.get("database_id")}
+
+    return NormalizedField(
+        name=name,
+        name_key=name.lower(),
+        field_type=field_type,
+        field_type_raw=field.get("field_type"),
+        is_primary=bool(field.get("is_primary", False)),
+        field_id=field.get("id"),
+        select_options=select_options,
+        select_options_detail=select_options_detail,
+        select_disable_color=select_disable_color,
+        type_option_data=type_option_data,
+        target_payload=_build_target_payload_from_database_field(field),
     )
 
 
@@ -181,7 +332,13 @@ def fetch_current_fields(client, token: str, workspace_id: str, database_id: str
 def fetch_target_fields_from_database(
     client, token: str, workspace_id: str, database_id: str
 ) -> list[NormalizedField]:
-    return fetch_current_fields(client, token, workspace_id, database_id)
+    resp = grid_lib.get_database_fields(client, token, workspace_id, database_id)
+    fields = resp.get("data", []) if isinstance(resp, dict) else []
+    result = []
+    for field in fields:
+        if isinstance(field, dict):
+            result.append(normalize_target_field_from_database(field))
+    return result
 
 
 def normalize_target_fields(fields: list[dict[str, Any]]) -> list[NormalizedField]:
@@ -268,7 +425,11 @@ def build_schema_diff(
                         "field_name": source_field.name,
                         "field_type": source_field.field_type,
                         "from_options": source_options,
+                        "from_options_detail": source_field.select_options_detail or [],
+                        "from_disable_color": bool(source_field.select_disable_color),
                         "to_options": target_options,
+                        "to_options_detail": target_field.select_options_detail or [],
+                        "to_disable_color": bool(target_field.select_disable_color),
                     }
                 )
 
@@ -337,13 +498,36 @@ def build_migration_plan(
     blocked = []
 
     for item in diff_result.get("add_fields", []) or []:
+        target_payload = item.get("target_payload")
+        auto_executable = bool(target_payload)
+        risk = "low"
+        note = None
+        if item.get("field_type") == "Relation":
+            auto_executable = False
+            risk = "high"
+            note = "Relation field migration requires manual review."
+        if not target_payload:
+            auto_executable = False
+            risk = "high"
+            note = "Missing target payload for field creation."
+        if isinstance(target_payload, dict):
+            type_option_data = target_payload.get("type_option_data")
+            if (
+                isinstance(type_option_data, dict)
+                and str(type_option_data.get("database_id") or "") == "<db_id_placeholder>"
+            ):
+                auto_executable = False
+                risk = "high"
+                note = "Relation field has unresolved database_id placeholder."
         operations.append(
             {
                 "op": "add_field",
                 "field_name": item.get("name"),
                 "field_type": item.get("field_type"),
-                "risk": "low",
-                "auto_executable": True,
+                "field_data": item,
+                "risk": risk,
+                "auto_executable": auto_executable,
+                "note": note,
             }
         )
 
@@ -400,6 +584,9 @@ def build_migration_plan(
                 "field_id": item.get("field_id"),
                 "field_name": item.get("field_name"),
                 "field_type": item.get("field_type"),
+                "to_options": item.get("to_options", []),
+                "to_options_detail": item.get("to_options_detail", []),
+                "to_disable_color": bool(item.get("to_disable_color", False)),
                 "risk": "medium",
                 "auto_executable": True,
             }
