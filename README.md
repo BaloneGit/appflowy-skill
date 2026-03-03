@@ -79,3 +79,5 @@ python skills/appflowy-api/scripts/appflowy_skill.py bulk-upsert-rows --config s
 > 保护策略：`delete-db-field` 默认不执行删除（dry-run），并且禁止删除主字段。
 >
 > 统一输出：M3 起删除类/批量命令会返回 `change_report`，包含 `before`/`plan`/`after`/`summary` 四段。
+>
+> 回归记录：`references/v0.2_m1_regression.md`、`references/v0.2_m2_regression.md`、`references/v0.2_m3_regression.md`、`references/v0.2_m4_regression.md`。

@@ -187,4 +187,6 @@ python skills/appflowy-api/scripts/bulk_upsert_rows.py --config skills/appflowy-
 4. `skills/appflowy-api/references/v0.2_m1_regression.md`：v0.2 M1 真实联调记录。
 5. `skills/appflowy-api/references/v0.2_m2_regression.md`：v0.2 M2 真实联调记录。
 6. `skills/appflowy-api/references/v0.2_m3_regression.md`：v0.2 M3 真实联调记录。
-7. `skills/appflowy-api/examples/`：示例命令与用法。
+7. `skills/appflowy-api/references/v0.2_regression_suite.md`：v0.2 回归脚本清单。
+8. `skills/appflowy-api/references/v0.2_m4_regression.md`：v0.2 M4 真实回归记录。
+9. `skills/appflowy-api/examples/`：示例命令与用法。
